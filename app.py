@@ -9,7 +9,11 @@ import db_service
 load_dotenv()
 
 app = Flask(__name__)
-app.secret_key = os.getenv("FLASK_SECRET_KEY", "prothese_dentaire_secret_key_2026_xyz")
+secret_key = (os.getenv("FLASK_SECRET_KEY") or "").strip()
+if not secret_key:
+    secret_key = "cle_secrete_salah_essaadi_dentaire_2026_ultra_secure_pro"
+app.secret_key = secret_key
+app.config["SECRET_KEY"] = secret_key
 
 # Configuration globale pour le cabinet dentaire
 CABINET_NAME = os.getenv("CABINET_NAME", "Cabinet dentaire de Salah Essaadi")
@@ -48,13 +52,9 @@ def inject_global_vars():
         "dental_acts": DENTAL_ACTS
     }
 
-import traceback
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    tb = traceback.format_exc()
-    print(f"[FLASK SERVER ERROR]: {tb}", flush=True)
-    return f"<h1>Erreur Serveur</h1><pre>{tb}</pre><p>{str(e)}</p>", 500
+@app.errorhandler(500)
+def internal_server_error(e):
+    return redirect(url_for("dashboard"))
 
 # ==============================================================================
 # ROUTE : TABLEAU DE BORD (ACCUEIL)
