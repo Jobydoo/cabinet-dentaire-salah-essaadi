@@ -1,0 +1,547 @@
+{% extends "base.html" %}
+
+{% block title %}Fiche Patient - {{ client.last_name | upper }} {{ client.first_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- FIL D'ARIANE & ACTIONS RAPIDES -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center space-x-2 text-xs text-slate-500">
+            <a href="{{ url_for('clients_list') }}" class="hover:text-brand-600">Patients</a>
+            <span>/</span>
+            <span class="text-slate-800 font-semibold">{{ client.last_name | upper }} {{ client.first_name }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('client_edit', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
+                <i class="fa-solid fa-pen-to-square mr-1.5 text-slate-400"></i> Modifier la fiche
+            </a>
+            <button onclick="window.print()" class="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition">
+                <i class="fa-solid fa-print mr-1.5 text-slate-400"></i> Imprimer le dossier
+            </button>
+            <form method="POST" action="{{ url_for('client_delete', client_id=client.id) }}" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer définitivement ce patient et tous ses travaux ?');" class="inline">
+                <button type="submit" class="p-1.5 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="Supprimer">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- CARTE D'IDENTITÉ DU PATIENT -->
+    <div class="card-soft p-6 bg-white">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-start space-x-4">
+                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-cyan-500 text-white flex items-center justify-center font-extrabold text-2xl shadow-md shadow-brand-500/20 flex-shrink-0">
+                    {{ client.first_name[0] }}{{ client.last_name[0] }}
+                </div>
+                <div>
+                    <div class="flex items-center space-x-3">
+                        <h1 class="text-2xl font-black text-slate-900">{{ client.last_name | upper }} {{ client.first_name }}</h1>
+                        {% if financials.remaining_balance == 0 and financials.total_quote > 0 %}
+                            <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                <i class="fa-solid fa-check mr-1 text-[10px]"></i> Dossier Réglé
+                            </span>
+                        {% elif financials.remaining_balance > 0 %}
+                            <span class="bg-amber-100 text-amber-800 text-xs font-bold px-2.5 py-0.5 rounded-full">
+                                Solde restant dû : {{ financials.remaining_balance }} {{ cabinet_currency }}
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-y-1 gap-x-4 text-xs text-slate-500 mt-2">
+                        <a href="tel:{{ client.phone }}" class="flex items-center text-brand-600 hover:underline font-semibold">
+                            <i class="fa-solid fa-phone mr-1.5"></i> {{ client.phone }}
+                        </a>
+                        {% if client.email %}
+                            <a href="mailto:{{ client.email }}" class="flex items-center hover:text-slate-800">
+                                <i class="fa-regular fa-envelope mr-1.5"></i> {{ client.email }}
+                            </a>
+                        {% endif %}
+                        {% if client.address %}
+                            <span class="flex items-center">
+                                <i class="fa-solid fa-location-dot mr-1.5 text-slate-400"></i> {{ client.address }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOUTONS D'ACTION RAPIDES CONTACT -->
+            <div class="flex items-center space-x-2">
+                <a href="https://wa.me/{{ client.phone | replace(' ', '') | replace('+', '') }}" target="_blank" class="inline-flex items-center px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
+                    <i class="fa-brands fa-whatsapp text-sm mr-1.5 text-emerald-600"></i> WhatsApp
+                </a>
+                <a href="{{ url_for('qrcode_module', client_id=client.id) }}" class="inline-flex items-center px-3 py-2 text-xs font-semibold rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 transition">
+                    <i class="fa-solid fa-star text-sm mr-1.5 text-amber-500"></i> QR Avis Google
+                </a>
+            </div>
+        </div>
+
+        {% if client.medical_notes %}
+            <div class="mt-4 p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs text-amber-900 flex items-start space-x-2">
+                <i class="fa-solid fa-notes-medical text-amber-600 mt-0.5 text-sm flex-shrink-0"></i>
+                <div>
+                    <span class="font-bold">Observations prothétiques :</span> {{ client.medical_notes }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- BANDEAU RÉCAPITULATIF FINANCIER & FACTURATION -->
+    <div class="card-soft p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+            <!-- Total Devis -->
+            <div class="border-b sm:border-b-0 sm:border-r border-slate-700 pb-3 sm:pb-0 pr-4">
+                <span class="text-xs text-slate-400 uppercase tracking-wider block font-semibold">Montant Total du Devis</span>
+                <span class="text-2xl font-black text-white mt-1 block">{{ financials.total_quote }} {{ cabinet_currency }}</span>
+                <span class="text-[11px] text-slate-400">{{ treatments | length }} prothèse(s) enregistrée(s)</span>
+            </div>
+
+            <!-- Total Versé -->
+            <div class="border-b sm:border-b-0 lg:border-r border-slate-700 pb-3 sm:pb-0 pr-4">
+                <span class="text-xs text-emerald-400 uppercase tracking-wider block font-semibold">Acomptes Versés</span>
+                <span class="text-2xl font-black text-emerald-400 mt-1 block">{{ financials.total_paid }} {{ cabinet_currency }}</span>
+                <span class="text-[11px] text-slate-400">{{ payments | length }} versement(s) effectué(s)</span>
+            </div>
+
+            <!-- Solde Restant Dû -->
+            <div class="border-b sm:border-b-0 sm:border-r border-slate-700 pb-3 sm:pb-0 pr-4">
+                <span class="text-xs text-amber-400 uppercase tracking-wider block font-semibold">Solde Restant Dû</span>
+                <span class="text-2xl font-black {% if financials.remaining_balance > 0 %}text-amber-400{% else %}text-emerald-400{% endif %} mt-1 block">
+                    {{ financials.remaining_balance }} {{ cabinet_currency }}
+                </span>
+                <div class="w-full bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div class="bg-emerald-400 h-1.5 rounded-full" style="width: {{ financials.percentage_paid }}%"></div>
+                </div>
+            </div>
+
+            <!-- Prochaine Échéance & Action -->
+            <div class="flex flex-col justify-between items-start lg:items-end">
+                <div>
+                    <span class="text-xs text-slate-400 block font-semibold">Prochain versement prévu :</span>
+                    <span class="text-sm font-bold text-white block mt-0.5">
+                        {% if financials.next_payment_date %}
+                            <i class="fa-regular fa-calendar-check mr-1 text-brand-400"></i> {{ financials.next_payment_date }}
+                        {% else %}
+                            <span class="text-slate-500 font-normal">Non planifié</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <button onclick="openModal('modal-add-payment')" class="mt-2.5 inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow transition active:scale-95">
+                    <i class="fa-solid fa-plus-circle mr-1.5"></i> Encaisser une avance
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECTIONS PAR ONGLET OU BLOCS STRUCTURÉS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- COLONNE GAUCHE (7 COLONNES) : PROTHÈSES & TRAITEMENTS -->
+        <div class="lg:col-span-7 space-y-6">
+
+            <!-- SECTION PROTHÈSES -->
+            <div class="card-soft p-5 bg-white">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-tooth text-brand-600 text-lg"></i>
+                        <h2 class="text-base font-bold text-slate-900">Prothèses & Travaux de Laboratoire</h2>
+                    </div>
+                    <button onclick="openModal('modal-add-treatment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Ajouter une prothèse
+                    </button>
+                </div>
+
+                {% if treatments %}
+                    <div class="space-y-4">
+                        {% for treat in treatments %}
+                            <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div>
+                                        <div class="flex items-center space-x-2">
+                                            <h3 class="font-extrabold text-base text-slate-900">{{ treat.title }}</h3>
+                                            {% if treat.teeth_numbers %}
+                                                <span class="text-xs bg-slate-100 text-slate-800 px-2 py-0.5 rounded font-mono font-bold">Dents: {{ treat.teeth_numbers }}</span>
+                                            {% endif %}
+                                            {% if treat.shade %}
+                                                <span class="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-bold">Teinte: {{ treat.shade }}</span>
+                                            {% endif %}
+                                        </div>
+                                        {% if treat.notes %}
+                                            <p class="text-xs text-slate-500 mt-1 italic">{{ treat.notes }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="text-base font-black text-slate-900 block">{{ treat.total_cost }} {{ cabinet_currency }}</span>
+                                        {% if treat.delivery_date %}
+                                            <span class="text-[11px] text-slate-400">Livraison: <strong>{{ treat.delivery_date }}</strong></span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- TIMELINE D'AVANCEMENT PROTHÉTIQUE -->
+                                <div class="mt-4 pt-3 border-t border-slate-100">
+                                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2">
+                                        <span>État d'avancement de la réalisation :</span>
+                                        <span class="text-brand-600 font-extrabold">{{ treat.status_label }} ({{ treat.progress_percentage }}%)</span>
+                                    </div>
+
+                                    <!-- Barre visuelle -->
+                                    <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-3">
+                                        <div class="bg-gradient-to-r from-brand-500 to-cyan-500 h-2 rounded-full transition-all duration-500" style="width: {{ treat.progress_percentage }}%"></div>
+                                    </div>
+
+                                    <!-- Changement rapide d'étape prothétique -->
+                                    <form method="POST" action="{{ url_for('treatment_update_status', treatment_id=treat.id) }}" class="flex items-center justify-between gap-2 mt-2 bg-slate-50 p-2 rounded-lg">
+                                        <input type="hidden" name="client_id" value="{{ client.id }}">
+                                        <label class="text-[11px] font-semibold text-slate-600">Modifier l'étape :</label>
+                                        <select name="status" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded px-2.5 py-1 font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                            {% for st_key, st_info in status_labels.items() %}
+                                                <option value="{{ st_key }}" {% if treat.status == st_key %}selected{% endif %}>
+                                                    {{ st_info.label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8 text-slate-400">
+                        <i class="fa-solid fa-tooth text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs">Aucune prothèse ou travail prothétique enregistré pour ce patient.</p>
+                        <button onclick="openModal('modal-add-treatment')" class="mt-2 text-xs font-bold text-brand-600 hover:underline">
+                            + Ajouter le premier travail de prothèse
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- SECTION SÉANCES & RENDEZ-VOUS -->
+            <div class="card-soft p-5 bg-white">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-check text-sky-600 text-lg"></i>
+                        <h2 class="text-base font-bold text-slate-900">Historique des Séances & Rendez-vous</h2>
+                    </div>
+                    <button onclick="openModal('modal-add-appointment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition">
+                        <i class="fa-solid fa-calendar-plus mr-1"></i> Planifier une séance
+                    </button>
+                </div>
+
+                {% if appointments %}
+                    <div class="divide-y divide-slate-100 text-xs">
+                        {% for appt in appointments %}
+                            <div class="py-3 flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-extrabold text-slate-800 text-sm">{{ appt.appointment_date }} à {{ appt.start_time }}</span>
+                                        <span class="text-slate-400">({{ appt.duration_minutes }} min)</span>
+                                    </div>
+                                    <p class="font-bold text-brand-700 mt-1"><i class="fa-solid fa-stethoscope mr-1 text-slate-400"></i>{{ appt.act_type }}</p>
+                                    {% if appt.notes %}
+                                        <p class="text-slate-500 text-[11px] mt-0.5 italic">{{ appt.notes }}</p>
+                                    {% endif %}
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="px-2 py-0.5 rounded-full font-bold text-[10px]
+                                        {% if appt.status == 'termine' %}bg-emerald-100 text-emerald-800
+                                        {% elif appt.status == 'confirme' %}bg-sky-100 text-sky-800
+                                        {% elif appt.status == 'annule' %}bg-rose-100 text-rose-800
+                                        {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                        {{ appt.status | capitalize }}
+                                    </span>
+                                    <!-- Changement rapide de statut séance -->
+                                    <form method="POST" action="{{ url_for('appointment_update_status', appointment_id=appt.id) }}" class="inline">
+                                        <input type="hidden" name="client_id" value="{{ client.id }}">
+                                        <input type="hidden" name="redirect_to" value="client">
+                                        {% if appt.status != 'termine' %}
+                                            <input type="hidden" name="status" value="termine">
+                                            <button type="submit" class="p-1 text-emerald-600 hover:text-emerald-800" title="Marquer comme effectuée">
+                                                <i class="fa-solid fa-circle-check"></i>
+                                            </button>
+                                        {% endif %}
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6 text-slate-400">
+                        <p class="text-xs">Aucune séance planifiée.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+        <!-- COLONNE DROITE (5 COLONNES) : PAIEMENTS & AVIS GOOGLE -->
+        <div class="lg:col-span-5 space-y-6">
+
+            <!-- HISTORIQUE DES ENCAISSEMENTS / TRANCHES VERSÉES -->
+            <div class="card-soft p-5 bg-white">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-file-invoice-dollar text-emerald-600 text-lg"></i>
+                        <h2 class="text-base font-bold text-slate-900">Versements & Acomptes</h2>
+                    </div>
+                    <button onclick="openModal('modal-add-payment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Nouveau versement
+                    </button>
+                </div>
+
+                {% if payments %}
+                    <div class="divide-y divide-slate-100 text-xs">
+                        {% for pay in payments %}
+                            <div class="py-3 flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="flex items-center space-x-2">
+                                        <span class="font-extrabold text-sm text-emerald-600">+{{ pay.amount }} {{ cabinet_currency }}</span>
+                                        <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] uppercase font-bold">{{ pay.payment_method }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 mt-1">
+                                        <span>Date : {{ pay.payment_date }}</span>
+                                        {% if pay.next_payment_date %}
+                                            <span class="ml-2 font-medium text-slate-600">• Prochaine échéance : {{ pay.next_payment_date }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if pay.notes %}
+                                        <p class="text-slate-500 text-[11px] mt-0.5 italic">{{ pay.notes }}</p>
+                                    {% endif %}
+                                </div>
+                                <form method="POST" action="{{ url_for('payment_delete', payment_id=pay.id) }}" onsubmit="return confirm('Supprimer cette ligne d\'acompte ?');">
+                                    <input type="hidden" name="client_id" value="{{ client.id }}">
+                                    <button type="submit" class="text-slate-400 hover:text-rose-500 p-1">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6 text-slate-400">
+                        <p class="text-xs">Aucun versement n'a encore été enregistré.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- MODULE QR CODE AVIS GOOGLE MAPS 5 ÉTOILES DU PATIENT -->
+            <div class="card-soft p-5 bg-gradient-to-br from-amber-50 to-white border border-amber-200">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-900">Avis Google Maps 5★</h2>
+                            <p class="text-[11px] text-slate-500">Invitation patient en fin de pose</p>
+                        </div>
+                    </div>
+                    <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">5.0 ★★★★★</span>
+                </div>
+
+                <div class="flex items-center space-x-4 mt-4 bg-white p-3 rounded-xl border border-amber-100">
+                    <img src="{{ url_for('qrcode_generate') }}" alt="QR Code Avis Google" class="w-24 h-24 rounded-lg border border-slate-200 shadow-sm flex-shrink-0">
+                    <div class="text-xs">
+                        <p class="font-bold text-slate-800">Faites scanner ce code au patient</p>
+                        <p class="text-slate-500 mt-1 text-[11px]">Redirection directe vers votre fiche Google Maps pour déposer un avis 5 étoiles élogieux.</p>
+                        <div class="mt-2 flex items-center space-x-2">
+                            <a href="{{ url_for('qrcode_module', client_id=client.id) }}" class="text-xs font-bold text-brand-600 hover:underline">
+                                Ouvrir en plein écran <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-0.5"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================================== -->
+<!-- MODALES D'AJOUT (PROTHÈSE, RENDEZ-VOUS, PAIEMENT) -->
+<!-- ============================================================================== -->
+
+<!-- 1. MODALE AJOUT DE PROTHÈSE -->
+<div id="modal-add-treatment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-base text-slate-900">Nouvelle Prothèse / Travail de Laboratoire</h3>
+            <button onclick="closeModal('modal-add-treatment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('treatment_add') }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Désignation de la prothèse *</label>
+                <input type="text" name="title" required placeholder="Ex: Couronne Zircone, Bridge 3 éléments, Stellite..."
+                       class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Numéro(s) de dent(s)</label>
+                    <input type="text" name="teeth_numbers" placeholder="Ex: 16, 21, Arcade complète"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Teinte dentaire</label>
+                    <input type="text" name="shade" placeholder="Ex: A2, A3, Bleach 2"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Montant total du devis ({{ cabinet_currency }}) *</label>
+                    <input type="number" step="0.01" name="total_cost" required placeholder="Ex: 2500"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date prévisionnelle de pose</label>
+                    <input type="date" name="delivery_date"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Étape initiale de fabrication</label>
+                <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                    {% for st_key, st_info in status_labels.items() %}
+                        <option value="{{ st_key }}">{{ st_info.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Consignes prothésiste / Notes</label>
+                <textarea name="notes" rows="2" placeholder="Glaçage, morphologie, type d'armature..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-add-treatment')" class="px-3.5 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg">Annuler</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-brand-600 rounded-lg">Enregistrer la prothèse</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. MODALE PLANIFICATION DE SÉANCE / RENDEZ-VOUS -->
+<div id="modal-add-appointment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-base text-slate-900">Planifier une séance pour {{ client.first_name }}</h3>
+            <button onclick="closeModal('modal-add-appointment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('appointment_add') }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <input type="hidden" name="redirect_to" value="client">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date du rendez-vous *</label>
+                    <input type="date" name="appointment_date" required value="{{ current_date }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Heure d'arrivée *</label>
+                    <input type="time" name="start_time" required value="10:00"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Durée (minutes)</label>
+                    <select name="duration_minutes" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                        <option value="15">15 min (Contrôle rapide)</option>
+                        <option value="30" selected>30 min (Séance standard)</option>
+                        <option value="45">45 min (Essayage / Empreinte)</option>
+                        <option value="60">60 min (Pose complète)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Statut initial</label>
+                    <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                        <option value="planifie">Planifié</option>
+                        <option value="confirme" selected>Confirmé</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Type d'acte / Soin dentaire *</label>
+                <select name="act_type" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-semibold text-slate-800">
+                    {% for act in dental_acts %}
+                        <option value="{{ act }}">{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notes spécifiques de la séance</label>
+                <textarea name="notes" rows="2" placeholder="Remarques pour l'assistante ou le praticien..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-add-appointment')" class="px-3.5 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg">Annuler</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-sky-600 rounded-lg">Confirmer le rendez-vous</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 3. MODALE ENCAISSER UN PAIEMENT / ACOMPTE -->
+<div id="modal-add-payment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-base text-slate-900">Enregistrer un versement / Acompte</h3>
+            <button onclick="closeModal('modal-add-payment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('payment_add') }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <input type="hidden" name="redirect_to" value="client">
+            <div class="p-3 bg-slate-50 rounded-xl flex items-center justify-between text-xs">
+                <span class="text-slate-500">Solde actuellement restant dû :</span>
+                <span class="font-bold text-amber-600 text-sm">{{ financials.remaining_balance }} {{ cabinet_currency }}</span>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Montant versé ({{ cabinet_currency }}) *</label>
+                    <input type="number" step="0.01" name="amount" required placeholder="Ex: 1000"
+                           class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none font-black text-emerald-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date du paiement *</label>
+                    <input type="date" name="payment_date" required value="{{ current_date }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Mode de règlement</label>
+                    <select name="payment_method" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-semibold">
+                        <option value="especes">Espèces</option>
+                        <option value="carte">Carte Bancaire</option>
+                        <option value="virement">Virement Bancaire</option>
+                        <option value="cheque">Chèque</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date prévisionnelle prochaine tranche</label>
+                    <input type="date" name="next_payment_date"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Associer à un travail spécifique (Optionnel)</label>
+                <select name="treatment_id" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                    <option value="">Acompte global sur dossier</option>
+                    {% for treat in treatments %}
+                        <option value="{{ treat.id }}">{{ treat.title }} ({{ treat.total_cost }} {{ cabinet_currency }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observations / Numéro de reçu</label>
+                <input type="text" name="notes" placeholder="Ex: Acompte à la prise d'empreinte silicone" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none">
+            </div>
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-add-payment')" class="px-3.5 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg">Annuler</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg shadow-sm">Valider l'encaissement</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

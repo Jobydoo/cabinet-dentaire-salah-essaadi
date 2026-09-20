@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Module QR Code Google Maps 5★ - Cabinet Dentaire{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- EN-TÊTE -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Module QR Code Google Maps 5 Étoiles</h1>
+            <p class="text-sm text-slate-500 mt-1">Collectez instantanément des avis 5★ de vos patients à la fin de la pose de leurs prothèses.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 shadow-sm transition">
+                <i class="fa-solid fa-print mr-1.5 text-brand-600"></i> Imprimer le chevalet de comptoir
+            </button>
+            <a href="{{ target_url }}" target="_blank" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition">
+                <i class="fa-solid fa-arrow-up-right-from-square mr-1.5"></i> Tester le lien d'avis
+            </a>
+        </div>
+    </div>
+
+    <!-- DOUBLE COLONNE : CONFIGURATION & APERÇU -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- CONFIGURATION DU LIEN GOOGLE MAPS (5 COLONNES) -->
+        <div class="lg:col-span-5 space-y-4 no-print">
+            <div class="card-soft p-6 bg-white space-y-4">
+                <div class="flex items-center space-x-3 pb-3 border-b border-slate-100">
+                    <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-gear"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-base text-slate-900">Configuration du QR Code</h2>
+                        <p class="text-xs text-slate-500">Lien direct d'avis Google de votre établissement</p>
+                    </div>
+                </div>
+
+                <form method="GET" action="{{ url_for('qrcode_module') }}" class="space-y-3">
+                    {% if client %}
+                        <input type="hidden" name="client_id" value="{{ client.id }}">
+                    {% endif %}
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase mb-1">URL de redirection / Fiche Google</label>
+                        <textarea name="url" rows="3" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono text-slate-700">{{ target_url }}</textarea>
+                    </div>
+
+                    <div class="p-3 bg-sky-50 rounded-xl border border-sky-100 text-xs text-sky-800 space-y-1">
+                        <p class="font-bold"><i class="fa-solid fa-lightbulb mr-1 text-amber-500"></i> Astuce Google Business Profile :</p>
+                        <p class="text-[11px] text-sky-700">Pour ouvrir directement la boîte de dialogue avec les 5 étoiles cochées, utilisez votre lien officiel :</p>
+                        <code class="block bg-white p-1 rounded border border-sky-200 text-[10px] break-all font-mono">https://search.google.com/local/writereview?placeid=VOTRE_PLACE_ID</code>
+                    </div>
+
+                    <div class="flex items-center justify-between pt-2">
+                        <button type="submit" class="w-full px-4 py-2 text-xs font-bold text-white bg-slate-900 hover:bg-slate-800 rounded-lg transition">
+                            Mettre à jour le QR Code
+                        </button>
+                    </div>
+                </form>
+
+                <div class="pt-3 border-t border-slate-100">
+                    <a href="{{ url_for('qrcode_generate', url=target_url) }}" download="qrcode-avis-google-{{ cabinet_name | replace(' ', '-') }}.png" 
+                       class="w-full inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
+                        <i class="fa-solid fa-download mr-1.5"></i> Télécharger l'image PNG
+                    </a>
+                </div>
+            </div>
+
+            {% if client %}
+                <div class="card-soft p-4 bg-emerald-50 border border-emerald-200 text-emerald-900">
+                    <p class="font-bold text-xs"><i class="fa-solid fa-user-check mr-1.5"></i> Patient sélectionné : {{ client.last_name | upper }} {{ client.first_name }}</p>
+                    <p class="text-[11px] text-emerald-700 mt-1">Vous pouvez faire scanner ce QR Code sur tablette ou smartphone directement à ce patient en fin de rendez-vous.</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- APERÇU DU CHEVALET / AFFICHETTES DE COMPTOIR (7 COLONNES) -->
+        <div class="lg:col-span-7">
+            <div class="card-soft p-8 sm:p-10 bg-gradient-to-b from-white to-slate-50 border-2 border-slate-200 text-center relative overflow-hidden shadow-lg" id="printable-stand">
+                
+                <!-- Badge décoratif -->
+                <div class="inline-flex items-center space-x-1 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-4 shadow-sm">
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    <i class="fa-solid fa-star text-amber-500"></i>
+                    <span class="ml-1 text-[11px]">VOTRE SOURIRE COMPTE</span>
+                </div>
+
+                <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                    Satisfait de votre nouveau sourire ?
+                </h2>
+                <p class="text-sm text-slate-500 mt-2 max-w-md mx-auto">
+                    Aidez-nous à faire rayonner le cabinet en partageant votre expérience et en laissant un avis 5 étoiles sur Google !
+                </p>
+
+                <!-- Cadre central QR Code -->
+                <div class="my-6 inline-block p-4 bg-white rounded-3xl shadow-xl border-4 border-brand-500/20">
+                    <img src="{{ url_for('qrcode_generate', url=target_url) }}" alt="QR Code Google Maps" 
+                         class="w-48 h-48 sm:w-56 sm:h-56 mx-auto rounded-xl">
+                    <p class="text-[11px] font-bold text-brand-700 uppercase tracking-widest mt-2 flex items-center justify-center">
+                        <i class="fa-solid fa-camera mr-1 text-xs"></i> Scannez avec votre mobile
+                    </p>
+                </div>
+
+                <!-- 3 ÉTAPES RAPIDES -->
+                <div class="grid grid-cols-3 gap-2 max-w-md mx-auto text-center mt-2 border-t border-slate-200 pt-4">
+                    <div class="p-2">
+                        <span class="w-6 h-6 rounded-full bg-brand-100 text-brand-700 font-extrabold text-xs inline-flex items-center justify-center mb-1">1</span>
+                        <p class="text-[11px] font-bold text-slate-700">Ouvrez l'appareil</p>
+                        <p class="text-[10px] text-slate-400">Photo de votre téléphone</p>
+                    </div>
+                    <div class="p-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-100 text-amber-700 font-extrabold text-xs inline-flex items-center justify-center mb-1">2</span>
+                        <p class="text-[11px] font-bold text-slate-700">Scannez le code</p>
+                        <p class="text-[10px] text-slate-400">Redirection instantanée</p>
+                    </div>
+                    <div class="p-2">
+                        <span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 font-extrabold text-xs inline-flex items-center justify-center mb-1">3</span>
+                        <p class="text-[11px] font-bold text-slate-700">5 Étoiles</p>
+                        <p class="text-[10px] text-slate-400">Publiez votre avis !</p>
+                    </div>
+                </div>
+
+                <!-- Footer cabinet -->
+                <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-400 flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-tooth text-brand-500"></i>
+                    <span class="font-bold text-slate-600">{{ cabinet_name }}</span>
+                    <span>• {{ cabinet_phone }}</span>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

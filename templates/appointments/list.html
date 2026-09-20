@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block title %}Planning des Séances & Rendez-vous - Cabinet Dentaire{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- EN-TÊTE -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Planning des Séances & Rendez-vous</h1>
+            <p class="text-sm text-slate-500 mt-1">Gestion de l'agenda clinique, des durées et des étapes opératoires en bouche.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button onclick="openModal('modal-new-appointment')" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-calendar-plus mr-1.5"></i> Planifier un rendez-vous
+            </button>
+        </div>
+    </div>
+
+    <!-- BARRE DE FILTRAGE PAR DATE -->
+    <div class="card-soft p-4 bg-white flex flex-col sm:flex-row items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('appointments_list') }}" class="flex items-center gap-3 w-full sm:w-auto">
+            <label class="text-xs font-bold text-slate-600 uppercase flex-shrink-0">Filtrer par date :</label>
+            <input type="date" name="date" value="{{ date_filter }}" class="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+            <button type="submit" class="px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white rounded-lg hover:bg-slate-900">
+                Filtrer
+            </button>
+            {% if date_filter %}
+                <a href="{{ url_for('appointments_list') }}" class="text-xs text-slate-500 hover:text-slate-800">Voir tout</a>
+            {% endif %}
+        </form>
+
+        <div class="flex items-center space-x-2">
+            <a href="{{ url_for('appointments_list', date=today) }}" class="px-3 py-1.5 text-xs font-bold rounded-lg {% if date_filter == today %}bg-brand-100 text-brand-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Aujourd'hui
+            </a>
+            <a href="{{ url_for('appointments_list') }}" class="px-3 py-1.5 text-xs font-bold rounded-lg {% if not date_filter %}bg-brand-100 text-brand-700{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">
+                Toutes les séances
+            </a>
+        </div>
+    </div>
+
+    <!-- LISTE DES RENDEZ-VOUS -->
+    <div class="card-soft bg-white overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-4">Date & Heure</th>
+                        <th class="py-3 px-4">Patient</th>
+                        <th class="py-3 px-4">Acte / Soin Dentaire</th>
+                        <th class="py-3 px-4">Durée</th>
+                        <th class="py-3 px-4">Statut</th>
+                        <th class="py-3 px-4">Notes</th>
+                        <th class="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% if appointments %}
+                        {% for appt in appointments %}
+                            <tr class="hover:bg-sky-50/40 transition">
+                                <!-- Date & Heure -->
+                                <td class="py-3.5 px-4 font-semibold text-slate-900 whitespace-nowrap">
+                                    <div class="flex items-center space-x-2">
+                                        <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold text-xs">
+                                            <i class="fa-regular fa-clock"></i>
+                                        </div>
+                                        <div>
+                                            <span class="font-bold text-slate-900 block">{{ appt.appointment_date }}</span>
+                                            <span class="text-brand-600 font-extrabold text-[11px]">{{ appt.start_time }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <!-- Patient -->
+                                <td class="py-3.5 px-4">
+                                    <a href="{{ url_for('client_view', client_id=appt.client_id) }}" class="font-bold text-sm text-slate-900 hover:text-brand-600 block">
+                                        {{ appt.client_name }}
+                                    </a>
+                                    <span class="text-[11px] text-slate-400">{{ appt.client_phone }}</span>
+                                </td>
+
+                                <!-- Acte -->
+                                <td class="py-3.5 px-4">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-800">
+                                        <i class="fa-solid fa-tooth mr-1.5 text-brand-500 text-[10px]"></i> {{ appt.act_type }}
+                                    </span>
+                                </td>
+
+                                <!-- Durée -->
+                                <td class="py-3.5 px-4 text-slate-600 font-medium">
+                                    {{ appt.duration_minutes }} min
+                                </td>
+
+                                <!-- Statut avec formulaire rapide -->
+                                <td class="py-3.5 px-4">
+                                    <form method="POST" action="{{ url_for('appointment_update_status', appointment_id=appt.id) }}">
+                                        <select name="status" onchange="this.form.submit()" class="text-[11px] font-bold rounded-full px-2.5 py-1 border-0 focus:ring-1 focus:ring-brand-500
+                                            {% if appt.status == 'confirme' %}bg-sky-100 text-sky-800
+                                            {% elif appt.status == 'termine' %}bg-emerald-100 text-emerald-800
+                                            {% elif appt.status == 'annule' %}bg-rose-100 text-rose-800
+                                            {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                            <option value="planifie" {% if appt.status == 'planifie' %}selected{% endif %}>Planifié</option>
+                                            <option value="confirme" {% if appt.status == 'confirme' %}selected{% endif %}>Confirmé</option>
+                                            <option value="termine" {% if appt.status == 'termine' %}selected{% endif %}>Terminé</option>
+                                            <option value="annule" {% if appt.status == 'annule' %}selected{% endif %}>Annulé</option>
+                                        </select>
+                                    </form>
+                                </td>
+
+                                <!-- Notes -->
+                                <td class="py-3.5 px-4 text-slate-500 max-w-xs truncate text-[11px]">
+                                    {{ appt.notes or '-' }}
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="py-3.5 px-4 text-right">
+                                    <div class="flex items-center justify-end space-x-1">
+                                        <a href="{{ url_for('client_view', client_id=appt.client_id) }}" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg" title="Fiche patient">
+                                            <i class="fa-solid fa-folder-open"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('appointment_delete', appointment_id=appt.id) }}" onsubmit="return confirm('Supprimer ce rendez-vous ?');" class="inline">
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="7" class="py-12 text-center text-slate-400">
+                                <i class="fa-regular fa-calendar-xmark text-3xl mb-2 text-slate-300"></i>
+                                <p class="text-sm font-medium">Aucun rendez-vous pour cette sélection.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- MODALE NOUVEAU RENDEZ-VOUS GLOBAL -->
+<div id="modal-new-appointment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-bold text-base text-slate-900">Planifier un nouveau rendez-vous</h3>
+            <button onclick="closeModal('modal-new-appointment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('appointment_add') }}" class="space-y-3">
+            <input type="hidden" name="redirect_to" value="appointments">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Sélectionner le patient *</label>
+                <select name="client_id" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-semibold">
+                    <option value="">-- Choisir un patient --</option>
+                    {% for client in clients %}
+                        <option value="{{ client.id }}">{{ client.last_name | upper }} {{ client.first_name }} ({{ client.phone }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Date *</label>
+                    <input type="date" name="appointment_date" required value="{{ current_date }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Heure d'arrivée *</label>
+                    <input type="time" name="start_time" required value="10:00"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Durée</label>
+                    <select name="duration_minutes" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="45">45 minutes</option>
+                        <option value="60">1 heure</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Statut</label>
+                    <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                        <option value="planifie">Planifié</option>
+                        <option value="confirme" selected>Confirmé</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Acte / Soin dentaire *</label>
+                <select name="act_type" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-semibold text-slate-800">
+                    {% for act in dental_acts %}
+                        <option value="{{ act }}">{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Notes / Instructions</label>
+                <textarea name="notes" rows="2" placeholder="Précisions pour la séance..." class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-new-appointment')" class="px-3.5 py-1.5 text-xs text-slate-600 bg-slate-100 rounded-lg">Annuler</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-brand-600 rounded-lg">Enregistrer le rendez-vous</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

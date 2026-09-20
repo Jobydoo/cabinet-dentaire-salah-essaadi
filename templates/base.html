@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Gestion Cabinet de Prothèse Dentaire{% endblock %} - {{ cabinet_name }}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        dent: {
+                            teal: '#0d9488',
+                            slate: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body class="h-full flex flex-col antialiased text-slate-800">
+
+    <!-- BARRE DE NAVIGATION SUPÉRIEURE -->
+    <nav class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <!-- LOGO & TITRE -->
+                <div class="flex items-center space-x-3">
+                    <a href="{{ url_for('dashboard') }}" class="flex items-center space-x-3 group">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 flex items-center justify-center text-white shadow-md shadow-brand-500/20 group-hover:scale-105 transition">
+                            <i class="fa-solid fa-tooth text-xl"></i>
+                        </div>
+                        <div>
+                            <span class="text-base sm:text-lg font-bold text-slate-900 block leading-tight">Dr. Salah Essaadi</span>
+                            <span class="text-[11px] text-brand-600 font-semibold">Cabinet Dentaire</span>
+                        </div>
+                    </a>
+
+                    <!-- MENU PRINCIPAL SIMPLIFIÉ -->
+                    <div class="hidden md:flex ml-6 space-x-1">
+                        <a href="{{ url_for('dashboard') }}" class="px-3 py-2 rounded-lg text-xs font-semibold transition {% if request.path == '/' %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-chart-pie mr-1 text-xs"></i> Tableau de bord
+                        </a>
+                        <a href="{{ url_for('clients_list') }}" class="px-3 py-2 rounded-lg text-xs font-semibold transition {% if '/clients' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-users mr-1 text-xs"></i> Patients
+                        </a>
+                        <a href="{{ url_for('appointments_list') }}" class="px-3 py-2 rounded-lg text-xs font-semibold transition {% if '/appointments' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-calendar-check mr-1 text-xs"></i> Séances & RDV
+                        </a>
+                        <a href="{{ url_for('payments_list') }}" class="px-3 py-2 rounded-lg text-xs font-semibold transition {% if '/payments' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-wallet mr-1 text-xs"></i> Paiements & Soldes
+                        </a>
+                        <a href="{{ url_for('qrcode_module') }}" class="px-3 py-2 rounded-lg text-xs font-semibold transition {% if '/qrcode' in request.path %}text-amber-600 bg-amber-50{% else %}text-slate-600 hover:text-amber-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-star mr-1 text-amber-500 text-xs"></i> Avis Google 5★
+                        </a>
+                    </div>
+                </div>
+
+                <!-- ACTIONS RAPIDES & RECHERCHE -->
+                <div class="flex items-center space-x-3">
+                    <!-- Champ de recherche rapide avec auto-complete -->
+                    <div class="relative hidden sm:block">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </div>
+                        <input type="text" id="global-search-input" placeholder="Rechercher patient / tél..." class="w-48 lg:w-64 pl-9 pr-3 py-1.5 text-xs bg-slate-100 border border-transparent rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                        <!-- Dropdown de résultats -->
+                        <div id="global-search-results" class="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 hidden z-50 overflow-hidden max-h-80 overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Bouton Nouveau Patient -->
+                    <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-3.5 py-1.5 text-xs font-semibold rounded-lg text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
+                        <i class="fa-solid fa-user-plus mr-1.5"></i> Nouveau Patient
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- NOTIFICATIONS FLASH -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 w-full">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flex items-center justify-between p-3.5 mb-3 text-sm rounded-xl border shadow-sm transition-all
+                        {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200
+                        {% elif category == 'danger' %}bg-rose-50 text-rose-800 border-rose-200
+                        {% elif category == 'warning' %}bg-amber-50 text-amber-800 border-amber-200
+                        {% else %}bg-sky-50 text-sky-800 border-sky-200{% endif %}">
+                        <div class="flex items-center">
+                            <i class="{% if category == 'success' %}fa-solid fa-circle-check text-emerald-600
+                                      {% elif category == 'danger' %}fa-solid fa-triangle-exclamation text-rose-600
+                                      {% elif category == 'warning' %}fa-solid fa-circle-exclamation text-amber-600
+                                      {% else %}fa-solid fa-circle-info text-sky-600{% endif %} mr-2.5 text-base"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 text-sm p-1">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- CONTENU PRINCIPAL -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- PIED DE PAGE -->
+    <footer class="bg-white border-t border-slate-200 py-5 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
+            <div class="flex items-center space-x-2 mb-2 sm:mb-0">
+                <i class="fa-solid fa-tooth text-brand-600"></i>
+                <span class="font-semibold text-slate-700">{{ cabinet_name }}</span>
+                <span>• {{ cabinet_address }}</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span><i class="fa-solid fa-phone mr-1 text-slate-400"></i>{{ cabinet_phone }}</span>
+                <span>• Déploiement : Vercel WSGI</span>
+                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-700">
+                    <i class="fa-solid fa-database mr-1"></i> Supabase / PostgreSQL
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>
