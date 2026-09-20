@@ -32,6 +32,15 @@ def get_iso_date(days_offset=0):
 def get_iso_now():
     return datetime.now().isoformat()
 
+def is_valid_uuid(val):
+    if not val:
+        return False
+    try:
+        uuid.UUID(str(val))
+        return True
+    except (ValueError, AttributeError):
+        return False
+
 # Données de démonstration réalistes pour laboratoire / cabinet dentaire
 _LOCAL_DB = {
     "clients": [
@@ -312,7 +321,7 @@ def get_clients(search_query=None):
     return sorted(results, key=lambda x: (x.get("last_name", ""), x.get("first_name", "")))
 
 def get_client_by_id(client_id):
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             res = supabase_client.table("clients").select("*").eq("id", client_id).single().execute()
             client = res.data
@@ -366,7 +375,7 @@ def update_client(client_id, data):
         "updated_at": get_iso_now()
     }
 
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             res = supabase_client.table("clients").update(update_data).eq("id", client_id).execute()
             if res.data:
@@ -382,7 +391,7 @@ def update_client(client_id, data):
     return None
 
 def delete_client(client_id):
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             supabase_client.table("clients").delete().eq("id", client_id).execute()
         except Exception as e:
@@ -408,7 +417,7 @@ TREATMENT_STATUS_LABELS = {
 }
 
 def get_treatments_by_client(client_id):
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             res = supabase_client.table("treatments").select("*").eq("client_id", client_id).order("created_at", desc=True).execute()
             treatments = res.data or []
@@ -543,7 +552,7 @@ def get_appointments(date_filter=None, upcoming_only=False):
     return sorted(appointments, key=lambda x: (x.get("appointment_date", ""), x.get("start_time", "")))
 
 def get_appointments_by_client(client_id):
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             res = supabase_client.table("appointments").select("*").eq("client_id", client_id).order("appointment_date", desc=True).order("start_time", desc=True).execute()
             return res.data or []
@@ -607,7 +616,7 @@ def delete_appointment(appointment_id):
 # GESTION DES PAIEMENTS & FACTURATION ÉCHELONNÉE
 # ==============================================================================
 def get_payments_by_client(client_id):
-    if USE_SUPABASE:
+    if USE_SUPABASE and is_valid_uuid(client_id):
         try:
             res = supabase_client.table("payments").select("*").eq("client_id", client_id).order("payment_date", desc=True).execute()
             return res.data or []

@@ -3,3 +3,12 @@ __pycache__/
 *.pyc
 .env
 deploy_github.py
+*_helper.py
+check_*.py
+trigger_*.py
+update_*.py
+test_db_*.py
+verify_*.py
+monitor_*.py
+deploy_to_*.py
+*.txt
