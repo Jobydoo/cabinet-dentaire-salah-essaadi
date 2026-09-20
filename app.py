@@ -48,6 +48,14 @@ def inject_global_vars():
         "dental_acts": DENTAL_ACTS
     }
 
+import traceback
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    tb = traceback.format_exc()
+    print(f"[FLASK SERVER ERROR]: {tb}", flush=True)
+    return f"<h1>Erreur Serveur</h1><pre>{tb}</pre><p>{str(e)}</p>", 500
+
 # ==============================================================================
 # ROUTE : TABLEAU DE BORD (ACCUEIL)
 # ==============================================================================
@@ -203,15 +211,16 @@ def treatment_add():
     flash(f"Travail prothétique '{title}' ajouté avec succès.", "success")
     return redirect(url_for("client_view", client_id=client_id))
 
-@app.route("/treatments/<treatment_id>/status", methods=["POST"])
+@app.route("/treatments/<treatment_id>/status", methods=["GET", "POST"])
 def treatment_update_status(treatment_id):
-    new_status = request.form.get("status")
-    client_id = request.form.get("client_id")
-    if new_status:
-        db_service.update_treatment_status(treatment_id, new_status)
-        flash("Statut de la prothèse actualisé.", "success")
-    if client_id:
-        return redirect(url_for("client_view", client_id=client_id))
+    if request.method == "POST":
+        new_status = request.form.get("status")
+        client_id = request.form.get("client_id")
+        if new_status:
+            db_service.update_treatment_status(treatment_id, new_status)
+            flash("Statut de la prothèse actualisé.", "success")
+        if client_id:
+            return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("dashboard"))
 
 @app.route("/treatments/<treatment_id>/delete", methods=["POST"])
@@ -268,18 +277,19 @@ def appointment_add():
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("appointments_list"))
 
-@app.route("/appointments/<appointment_id>/status", methods=["POST"])
+@app.route("/appointments/<appointment_id>/status", methods=["GET", "POST"])
 def appointment_update_status(appointment_id):
-    status = request.form.get("status")
-    redirect_to = request.form.get("redirect_to", "appointments")
-    client_id = request.form.get("client_id")
+    if request.method == "POST":
+        status = request.form.get("status")
+        redirect_to = request.form.get("redirect_to", "appointments")
+        client_id = request.form.get("client_id")
 
-    if status:
-        db_service.update_appointment_status(appointment_id, status)
-        flash("Statut de la séance actualisé.", "success")
+        if status:
+            db_service.update_appointment_status(appointment_id, status)
+            flash("Statut de la séance actualisé.", "success")
 
-    if redirect_to == "client" and client_id:
-        return redirect(url_for("client_view", client_id=client_id))
+        if redirect_to == "client" and client_id:
+            return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("appointments_list"))
 
 @app.route("/appointments/<appointment_id>/delete", methods=["POST"])

@@ -287,13 +287,37 @@ def calculate_financials_for_client(client_id, treatments_list=None, payments_li
 def get_clients(search_query=None):
     if USE_SUPABASE:
         try:
-            query = supabase_client.table("clients").select("*").order("last_name")
+            query = supabase_client.table("v_client_financial_summary").select("*").order("last_name")
             if search_query:
-                # Recherche par nom, prénom ou téléphone
                 search_term = f"%{search_query}%"
                 query = query.or_(f"last_name.ilike.{search_term},first_name.ilike.{search_term},phone.ilike.{search_term}")
             res = query.execute()
-            clients = res.data or []
+            raw_clients = res.data or []
+            results = []
+            for r in raw_clients:
+                c = dict(r)
+                c["id"] = c.get("client_id")
+                t_quote = float(c.get("total_quote") or 0.0)
+                t_paid = float(c.get("total_paid") or 0.0)
+                rem_bal = float(c.get("remaining_balance") or 0.0)
+                c["total_quote"] = round(t_quote, 2)
+                c["total_paid"] = round(t_paid, 2)
+                c["remaining_balance"] = round(max(0.0, rem_bal), 2)
+                c["percentage_paid"] = min(100.0, round((t_paid / t_quote * 100), 1)) if t_quote > 0 else 0
+                if t_quote == 0.0:
+                    c["status_label"] = "Aucun devis"
+                    c["status_badge"] = "secondary"
+                elif rem_bal <= 0.0:
+                    c["status_label"] = "Soldé / Réglé"
+                    c["status_badge"] = "success"
+                elif t_paid > 0.0:
+                    c["status_label"] = "Acompte partiel"
+                    c["status_badge"] = "warning"
+                else:
+                    c["status_label"] = "En attente d'acompte"
+                    c["status_badge"] = "danger"
+                results.append(c)
+            return sorted(results, key=lambda x: (x.get("last_name", ""), x.get("first_name", "")))
         except Exception as e:
             print(f"[Supabase Error get_clients]: {e}")
             clients = _LOCAL_DB["clients"]
@@ -310,7 +334,7 @@ def get_clients(search_query=None):
             or q in c.get("phone", "").lower()
         ]
 
-    # Enrichir chaque client avec ses statistiques financières
+    # Enrichir chaque client avec ses statistiques financières (mode local)
     results = []
     for c in clients:
         c_copy = dict(c)
@@ -446,17 +470,27 @@ def get_all_active_treatments():
     else:
         treatments = [t for t in _LOCAL_DB["treatments"] if t.get("status") != "livre_pose"]
 
-    # Enrichir avec informations client
-    client_map = {c["id"]: c for c in get_clients()}
-    for t in treatments:
-        client = client_map.get(t.get("client_id"), {})
-        t["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
-        t["client_phone"] = client.get("phone", "")
-        status_key = t.get("status", "empreinte")
-        meta = TREATMENT_STATUS_LABELS.get(status_key, {"label": status_key, "color": "blue", "progress": 20})
-        t["status_label"] = meta["label"]
-        t["status_color"] = meta["color"]
-        t["progress_percentage"] = meta["progress"]
+    if USE_SUPABASE:
+        for t in treatments:
+            client = t.get("clients") or {}
+            t["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+            t["client_phone"] = client.get("phone", "")
+            status_key = t.get("status", "empreinte")
+            meta = TREATMENT_STATUS_LABELS.get(status_key, {"label": status_key, "color": "blue", "progress": 20})
+            t["status_label"] = meta["label"]
+            t["status_color"] = meta["color"]
+            t["progress_percentage"] = meta["progress"]
+    else:
+        client_map = {c["id"]: c for c in _LOCAL_DB["clients"]}
+        for t in treatments:
+            client = client_map.get(t.get("client_id"), {})
+            t["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+            t["client_phone"] = client.get("phone", "")
+            status_key = t.get("status", "empreinte")
+            meta = TREATMENT_STATUS_LABELS.get(status_key, {"label": status_key, "color": "blue", "progress": 20})
+            t["status_label"] = meta["label"]
+            t["status_color"] = meta["color"]
+            t["progress_percentage"] = meta["progress"]
 
     return sorted(treatments, key=lambda x: x.get("delivery_date") or "9999-99-99")
 
@@ -523,27 +557,31 @@ def delete_treatment(treatment_id):
 def get_appointments(date_filter=None, upcoming_only=False):
     if USE_SUPABASE:
         try:
-            query = supabase_client.table("appointments").select("*").order("appointment_date").order("start_time")
+            query = supabase_client.table("appointments").select("*, clients(first_name, last_name, phone)").order("appointment_date").order("start_time")
             if date_filter:
                 query = query.eq("appointment_date", date_filter)
             elif upcoming_only:
                 query = query.gte("appointment_date", date.today().isoformat())
             res = query.execute()
             appointments = res.data or []
+            for a in appointments:
+                client = a.get("clients") or {}
+                a["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+                a["client_phone"] = client.get("phone", "")
+            return sorted(appointments, key=lambda x: (x.get("appointment_date", ""), x.get("start_time", "")))
         except Exception as e:
             print(f"[Supabase Error get_appointments]: {e}")
             appointments = _LOCAL_DB["appointments"]
     else:
         appointments = _LOCAL_DB["appointments"]
 
-    if not USE_SUPABASE:
-        today_str = date.today().isoformat()
-        if date_filter:
-            appointments = [a for a in appointments if a.get("appointment_date") == date_filter]
-        elif upcoming_only:
-            appointments = [a for a in appointments if a.get("appointment_date") >= today_str]
+    today_str = date.today().isoformat()
+    if date_filter:
+        appointments = [a for a in appointments if a.get("appointment_date") == date_filter]
+    elif upcoming_only:
+        appointments = [a for a in appointments if a.get("appointment_date") >= today_str]
 
-    client_map = {c["id"]: c for c in get_clients()}
+    client_map = {c["id"]: c for c in _LOCAL_DB["clients"]}
     for a in appointments:
         client = client_map.get(a.get("client_id"), {})
         a["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
@@ -630,15 +668,19 @@ def get_payments_by_client(client_id):
 def get_all_payments(limit=50):
     if USE_SUPABASE:
         try:
-            res = supabase_client.table("payments").select("*").order("payment_date", desc=True).limit(limit).execute()
+            res = supabase_client.table("payments").select("*, clients(first_name, last_name, phone)").order("payment_date", desc=True).limit(limit).execute()
             payments = res.data or []
+            for p in payments:
+                client = p.get("clients") or {}
+                p["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+            return payments
         except Exception as e:
             print(f"[Supabase Error get_all_payments]: {e}")
             payments = _LOCAL_DB["payments"][:limit]
     else:
         payments = sorted(_LOCAL_DB["payments"], key=lambda x: x.get("payment_date", ""), reverse=True)[:limit]
 
-    client_map = {c["id"]: c for c in get_clients()}
+    client_map = {c["id"]: c for c in _LOCAL_DB["clients"]}
     for p in payments:
         client = client_map.get(p.get("client_id"), {})
         p["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
