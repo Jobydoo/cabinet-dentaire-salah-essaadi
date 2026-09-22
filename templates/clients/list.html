@@ -1,91 +1,91 @@
 {% extends "base.html" %}
 
-{% block title %}Gestion des Patients - Cabinet Dentaire{% endblock %}
+{% block title %}سجل المرضى - {{ cabinet_name }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <!-- EN-TÊTE -->
+    <!-- الترويسة -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Fichier des Patients</h1>
-            <p class="text-sm text-slate-500 mt-1">Recherche rapide, suivi des travaux prothétiques et situations financières.</p>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">سجل ملفات المرضى</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">البحث السريع، متابعة التركيبات وأعمال المختبر، والمستحقات المالية.</p>
         </div>
         <div class="flex items-center gap-3">
             <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-user-plus mr-1.5"></i> Nouveau Patient
+                <i class="fa-solid fa-user-plus ml-1.5"></i> مريض جديد
             </a>
         </div>
     </div>
 
-    <!-- FILTRES & BARRE DE RECHERCHE -->
+    <!-- شريط البحث السريع والفلترة -->
     <div class="card-soft p-4 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
-        <!-- Recherche formulaire classique -->
+        <!-- نموذج البحث -->
         <form method="GET" action="{{ url_for('clients_list') }}" class="flex-1 w-full flex items-center gap-2">
             <div class="relative flex-1">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                     <i class="fa-solid fa-magnifying-glass text-xs"></i>
                 </div>
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Rechercher par nom, prénom, numéro de téléphone..." 
-                       class="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                <input type="text" name="q" value="{{ search_query }}" placeholder="ابحث بالاسم، النسب أو رقم الهاتف..." 
+                       class="w-full pr-9 pl-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
             </div>
             {% if status_filter %}
                 <input type="hidden" name="status" value="{{ status_filter }}">
             {% endif %}
-            <button type="submit" class="px-4 py-2 text-xs font-semibold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition">
-                Rechercher
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition">
+                بحث
             </button>
             {% if search_query or status_filter %}
-                <a href="{{ url_for('clients_list') }}" class="px-3 py-2 text-xs font-medium text-slate-500 hover:text-slate-800">
-                    Réinitialiser
+                <a href="{{ url_for('clients_list') }}" class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800">
+                    إعادة ضبط
                 </a>
             {% endif %}
         </form>
 
-        <!-- Onglets Filtres de Solde -->
-        <div class="flex items-center space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-medium text-slate-600 self-stretch md:self-auto justify-center">
-            <a href="{{ url_for('clients_list', q=search_query) }}" class="px-3 py-1.5 rounded-md transition {% if not status_filter %}bg-white text-brand-700 font-bold shadow-sm{% else %}hover:text-slate-900{% endif %}">
-                Tous ({{ total_count }})
+        <!-- تصنيفات الحساب المالي -->
+        <div class="flex items-center space-x-1 space-x-reverse bg-slate-100 p-1 rounded-lg text-xs font-bold text-slate-600 self-stretch md:self-auto justify-center">
+            <a href="{{ url_for('clients_list', q=search_query) }}" class="px-3 py-1.5 rounded-md transition {% if not status_filter %}bg-white text-brand-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                الكل ({{ total_count }})
             </a>
-            <a href="{{ url_for('clients_list', q=search_query, status='balance_due') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'balance_due' %}bg-white text-amber-700 font-bold shadow-sm{% else %}hover:text-slate-900{% endif %}">
-                Soldes à recouvrer
+            <a href="{{ url_for('clients_list', q=search_query, status='balance_due') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'balance_due' %}bg-white text-amber-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                في انتظار السداد
             </a>
-            <a href="{{ url_for('clients_list', q=search_query, status='settled') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'settled' %}bg-white text-emerald-700 font-bold shadow-sm{% else %}hover:text-slate-900{% endif %}">
-                Dossiers réglés
+            <a href="{{ url_for('clients_list', q=search_query, status='settled') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'settled' %}bg-white text-emerald-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                مسدد بالكامل
             </a>
         </div>
     </div>
 
-    <!-- TABLEAU DES PATIENTS -->
+    <!-- جدول المرضى البسيط والواضح -->
     <div class="card-soft bg-white overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse">
+            <table class="w-full text-right border-collapse">
                 <thead>
                     <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                        <th class="py-3 px-4">Patient / Contact</th>
-                        <th class="py-3 px-4">Total Devis</th>
-                        <th class="py-3 px-4">Acomptes Versés</th>
-                        <th class="py-3 px-4">Solde Restant Dû</th>
-                        <th class="py-3 px-4">Prochaine Tranche</th>
-                        <th class="py-3 px-4 text-right">Actions</th>
+                        <th class="py-3 px-4">المريض / معلومات الاتصال</th>
+                        <th class="py-3 px-4">إجمالي العلاج</th>
+                        <th class="py-3 px-4">المبلغ المسدد</th>
+                        <th class="py-3 px-4">الباقي المستحق</th>
+                        <th class="py-3 px-4">موعد الدفعة القادمة</th>
+                        <th class="py-3 px-4 text-left">إجراءات</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 text-xs">
                     {% if clients %}
                         {% for client in clients %}
                             <tr class="hover:bg-sky-50/40 transition">
-                                <!-- Patient -->
-                                <td class="py-3 px-4">
-                                    <div class="flex items-center space-x-3">
-                                        <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs uppercase flex-shrink-0">
-                                            {{ client.first_name[0] }}{{ client.last_name[0] }}
+                                <!-- المريض -->
+                                <td class="py-3.5 px-4">
+                                    <div class="flex items-center space-x-3 space-x-reverse">
+                                        <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-black text-xs uppercase flex-shrink-0">
+                                            {{ client.first_name[0] if client.first_name else 'م' }}
                                         </div>
                                         <div>
-                                            <a href="{{ url_for('client_view', client_id=client.id) }}" class="font-bold text-sm text-slate-900 hover:text-brand-600 transition block">
-                                                {{ client.last_name | upper }} {{ client.first_name }}
+                                            <a href="{{ url_for('client_view', client_id=client.id) }}" class="font-black text-sm text-slate-900 hover:text-brand-600 transition block">
+                                                {{ client.first_name }} {{ client.last_name }}
                                             </a>
                                             <div class="flex items-center gap-2 text-slate-500 mt-0.5">
-                                                <span><i class="fa-solid fa-phone text-[10px] mr-1 text-slate-400"></i>{{ client.phone }}</span>
+                                                <span class="font-mono text-[11px]"><i class="fa-solid fa-phone text-[10px] ml-1 text-slate-400"></i>{{ client.phone }}</span>
                                                 {% if client.address %}
                                                     <span class="hidden sm:inline text-slate-300">•</span>
                                                     <span class="hidden sm:inline text-[11px] text-slate-400 truncate max-w-[150px]">{{ client.address }}</span>
@@ -95,55 +95,54 @@
                                     </div>
                                 </td>
 
-                                <!-- Devis -->
-                                <td class="py-3 px-4 font-semibold text-slate-800">
+                                <!-- إجمالي العلاج -->
+                                <td class="py-3.5 px-4 font-bold text-slate-800">
                                     {{ client.total_quote }} {{ cabinet_currency }}
                                 </td>
 
-                                <!-- Versé -->
-                                <td class="py-3 px-4 text-emerald-600 font-semibold">
+                                <!-- المبلغ المدفوع -->
+                                <td class="py-3.5 px-4 font-bold text-emerald-600 font-mono">
                                     {{ client.total_paid }} {{ cabinet_currency }}
-                                    <div class="text-[10px] text-slate-400 font-normal">{{ client.percentage_paid }}% acquitté</div>
                                 </td>
 
-                                <!-- Solde restant -->
-                                <td class="py-3 px-4">
+                                <!-- الباقي في الذمة -->
+                                <td class="py-3.5 px-4">
                                     {% if client.remaining_balance > 0 %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">
-                                            <i class="fa-solid fa-clock-rotate-left mr-1 text-[10px]"></i> {{ client.remaining_balance }} {{ cabinet_currency }}
-                                        </span>
-                                    {% elif client.total_quote > 0 %}
-                                        <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
-                                            <i class="fa-solid fa-check mr-1 text-[10px]"></i> Réglé
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-black bg-amber-100 text-amber-800 font-mono">
+                                            {{ client.remaining_balance }} {{ cabinet_currency }}
                                         </span>
                                     {% else %}
-                                        <span class="text-slate-400 text-xs">-</span>
+                                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+                                            <i class="fa-solid fa-check ml-1 text-[10px]"></i> مسدد
+                                        </span>
                                     {% endif %}
                                 </td>
 
-                                <!-- Prochaine échéance -->
-                                <td class="py-3 px-4">
+                                <!-- موعد الدفعة القادمة -->
+                                <td class="py-3.5 px-4 text-slate-600">
                                     {% if client.next_payment_date %}
-                                        <span class="inline-flex items-center font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded text-[11px]">
-                                            <i class="fa-regular fa-calendar text-[10px] mr-1.5 text-brand-600"></i> {{ client.next_payment_date }}
+                                        <span class="inline-flex items-center text-[11px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded font-mono">
+                                            <i class="fa-regular fa-calendar ml-1 text-slate-400"></i> {{ client.next_payment_date }}
                                         </span>
                                     {% else %}
-                                        <span class="text-slate-400 text-xs">Non définie</span>
+                                        <span class="text-slate-400">-</span>
                                     {% endif %}
                                 </td>
 
-                                <!-- Actions -->
-                                <td class="py-3 px-4 text-right">
-                                    <div class="flex items-center justify-end space-x-1">
-                                        <a href="{{ url_for('client_view', client_id=client.id) }}" class="p-1.5 text-brand-600 hover:text-brand-800 hover:bg-brand-50 rounded-lg transition" title="Consulter la fiche patient">
-                                            <i class="fa-solid fa-folder-open text-sm"></i>
+                                <!-- إجراءات سريعة -->
+                                <td class="py-3.5 px-4 text-left">
+                                    <div class="flex items-center justify-end space-x-1 space-x-reverse">
+                                        <a href="{{ url_for('client_view', client_id=client.id) }}" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="عرض ملف المريض">
+                                            <i class="fa-solid fa-folder-open"></i>
                                         </a>
-                                        <a href="{{ url_for('client_edit', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition" title="Modifier coordonnées">
-                                            <i class="fa-solid fa-pen-to-square text-sm"></i>
+                                        <a href="{{ url_for('client_edit', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition" title="تعديل">
+                                            <i class="fa-solid fa-pen"></i>
                                         </a>
-                                        <a href="{{ url_for('qrcode_module', client_id=client.id) }}" class="p-1.5 text-amber-600 hover:text-amber-800 hover:bg-amber-50 rounded-lg transition" title="QR Code Avis Google">
-                                            <i class="fa-solid fa-qrcode text-sm"></i>
-                                        </a>
+                                        <form method="POST" action="{{ url_for('client_delete', client_id=client.id) }}" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف ملف هذا المريض وكافة بياناته ؟');" class="inline">
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="حذف">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -151,10 +150,10 @@
                     {% else %}
                         <tr>
                             <td colspan="6" class="py-12 text-center text-slate-400">
-                                <i class="fa-solid fa-user-slash text-3xl mb-2"></i>
-                                <p class="text-sm font-medium">Aucun patient ne correspond à votre recherche.</p>
-                                <a href="{{ url_for('client_create') }}" class="mt-3 inline-block text-xs text-brand-600 font-bold hover:underline">
-                                    + Ajouter un nouveau dossier patient
+                                <i class="fa-solid fa-user-slash text-4xl mb-3 text-slate-300"></i>
+                                <p class="text-sm font-bold">لا يوجد أي مريض يطابق هذا البحث.</p>
+                                <a href="{{ url_for('client_create') }}" class="mt-2 inline-block text-xs font-bold text-brand-600 hover:underline">
+                                    + تسجيل مريض جديد الآن
                                 </a>
                             </td>
                         </tr>

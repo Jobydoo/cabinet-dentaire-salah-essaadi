@@ -114,17 +114,21 @@ def test_full_cabinet_flow():
     fin2 = db_service.calculate_financials_for_client(p_id)
     assert fin2['total_paid'] == 3500.0
     assert fin2['remaining_balance'] == 0.0
-    assert fin2['status_label'] == 'Soldé / Réglé'
-    print(" -> Dossier patient int\u00e9gralement sold\u00e9 (Solde: 0.0 DH) -> OK !")
+    assert fin2['status_label'] in ['تم السداد بالكامل', 'Soldé / Réglé']
+    print(" -> Dossier patient intégralement soldé (Solde: 0.0 DH) -> OK !")
 
     print("[9] Test module QR Code Google Maps...")
     res = client.get(f'/qrcode?client_id={p_id}')
     assert res.status_code == 200
-    assert b"Avis Google" in res.data
+    assert "تقييم".encode('utf-8') in res.data or b"Avis Google" in res.data
     res_img = client.get('/qrcode/generate')
     assert res_img.status_code == 200
     assert res_img.content_type == 'image/png'
-    print(" -> Module QR Code Google Maps g\u00e9n\u00e9r\u00e9 avec succ\u00e8s !")
+    print(" -> Module QR Code Google Maps généré avec succès !")
+
+    # Nettoyage du patient de test
+    db_service.delete_client(p_id)
+    print(" -> Patient de test nettoyé.")
 
     print("\n TOUS LES BOUTONS ET FLUX FONCTIONNENT \u00c0 100% !")
 

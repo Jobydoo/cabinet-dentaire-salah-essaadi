@@ -256,16 +256,16 @@ def calculate_financials_for_client(client_id, treatments_list=None, payments_li
 
     # Statut du paiement
     if total_quote == 0.0:
-        status_label = "Aucun devis"
+        status_label = "بدون كشف حساب"
         status_badge = "secondary"
     elif remaining_balance <= 0.0:
-        status_label = "Soldé / Réglé"
+        status_label = "تم السداد بالكامل"
         status_badge = "success"
     elif total_paid > 0.0:
-        status_label = "Acompte partiel"
+        status_label = "تسبيق / دفعة جزئية"
         status_badge = "warning"
     else:
-        status_label = "En attente d'acompte"
+        status_label = "في انتظار التسبيق"
         status_badge = "danger"
 
     percentage_paid = (total_paid / total_quote * 100) if total_quote > 0 else 0
@@ -305,16 +305,16 @@ def get_clients(search_query=None):
                 c["remaining_balance"] = round(max(0.0, rem_bal), 2)
                 c["percentage_paid"] = min(100.0, round((t_paid / t_quote * 100), 1)) if t_quote > 0 else 0
                 if t_quote == 0.0:
-                    c["status_label"] = "Aucun devis"
+                    c["status_label"] = "بدون كشف حساب"
                     c["status_badge"] = "secondary"
                 elif rem_bal <= 0.0:
-                    c["status_label"] = "Soldé / Réglé"
+                    c["status_label"] = "تم السداد بالكامل"
                     c["status_badge"] = "success"
                 elif t_paid > 0.0:
-                    c["status_label"] = "Acompte partiel"
+                    c["status_label"] = "تسبيق / دفعة جزئية"
                     c["status_badge"] = "warning"
                 else:
-                    c["status_label"] = "En attente d'acompte"
+                    c["status_label"] = "في انتظار التسبيق"
                     c["status_badge"] = "danger"
                 results.append(c)
             return sorted(results, key=lambda x: (x.get("last_name", ""), x.get("first_name", "")))
@@ -432,12 +432,12 @@ def delete_client(client_id):
 # GESTION DES TRAITEMENTS & PROTHÈSES
 # ==============================================================================
 TREATMENT_STATUS_LABELS = {
-    "empreinte": {"label": "Empreinte reçue", "color": "purple", "progress": 15},
-    "conception_cfao": {"label": "Conception CFAO / Modèle", "color": "indigo", "progress": 35},
-    "armature": {"label": "Armature / Coulée", "color": "blue", "progress": 55},
-    "essayage": {"label": "Prêt pour essayage", "color": "amber", "progress": 75},
-    "ceramique_finition": {"label": "Finition Céramique / Glaçage", "color": "emerald", "progress": 90},
-    "livre_pose": {"label": "Livré & Posé", "color": "slate", "progress": 100}
+    "empreinte": {"label": "استلام الطبعة / المقاس", "color": "purple", "progress": 15},
+    "conception_cfao": {"label": "التصميم الرقمي ثلاثي الأبعاد (CFAO)", "color": "indigo", "progress": 35},
+    "armature": {"label": "صب وتصنيع الهيكل", "color": "blue", "progress": 55},
+    "essayage": {"label": "جاهز للتجربة في الفم", "color": "amber", "progress": 75},
+    "ceramique_finition": {"label": "تطبيق السيراميك واللمعان النهائي", "color": "emerald", "progress": 90},
+    "livre_pose": {"label": "تم التركيب والتسليم بنجاح", "color": "slate", "progress": 100}
 }
 
 def get_treatments_by_client(client_id):

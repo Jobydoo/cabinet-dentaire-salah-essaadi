@@ -1,83 +1,83 @@
 {% extends "base.html" %}
 
-{% block title %}{% if is_edit %}Modifier Patient{% else %}Nouveau Patient{% endif %} - Cabinet Dentaire{% endblock %}
+{% block title %}{% if is_edit %}تعديل ملف المريض{% else %}إضافة مريض جديد{% endif %} - {{ cabinet_name }}{% endblock %}
 
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
 
-    <!-- FIL D'ARIANE -->
-    <div class="flex items-center space-x-2 text-xs text-slate-500">
-        <a href="{{ url_for('clients_list') }}" class="hover:text-brand-600">Patients</a>
+    <!-- مسار التنقل البسيط -->
+    <div class="flex items-center space-x-2 space-x-reverse text-xs text-slate-500">
+        <a href="{{ url_for('clients_list') }}" class="hover:text-brand-600 font-bold">المرضى</a>
         <span>/</span>
-        <span class="text-slate-800 font-semibold">{% if is_edit %}Modifier Dossier{% else %}Nouveau Dossier Patient{% endif %}</span>
+        <span class="text-slate-800 font-bold">{% if is_edit %}تعديل البيانات{% else %}تسجيل مريض جديد{% endif %}</span>
     </div>
 
-    <!-- CARTE FORMULAIRE -->
+    <!-- بطاقة النموذج البسيطة -->
     <div class="card-soft p-6 sm:p-8 bg-white">
-        <div class="flex items-center space-x-3 pb-5 mb-6 border-b border-slate-100">
+        <div class="flex items-center space-x-3 space-x-reverse pb-5 mb-6 border-b border-slate-100">
             <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg">
                 <i class="fa-solid fa-user-pen"></i>
             </div>
             <div>
-                <h1 class="text-xl font-bold text-slate-900">
-                    {% if is_edit %}Modifier les coordonnées de {{ client.first_name }} {{ client.last_name }}{% else %}Création d'un dossier patient{% endif %}
+                <h1 class="text-xl font-black text-slate-900">
+                    {% if is_edit %}تعديل بيانات: {{ client.first_name }} {{ client.last_name }}{% else %}تسجيل ملف مريض جديد{% endif %}
                 </h1>
-                <p class="text-xs text-slate-500 mt-0.5">Renseignez les informations de contact et les observations prothétiques.</p>
+                <p class="text-xs text-slate-500 mt-0.5">أدخل معلومات الاتصال والملاحظات الطبية الخاصة بالمريض.</p>
             </div>
         </div>
 
         <form method="POST">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <!-- Nom -->
+                <!-- الاسم الشخصي -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nom <span class="text-rose-500">*</span></label>
-                    <input type="text" name="last_name" required value="{{ client.last_name or '' }}" placeholder="Ex: Bennani"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">الاسم الشخصي <span class="text-rose-500">*</span></label>
+                    <input type="text" name="first_name" required value="{{ client.first_name or '' }}" placeholder="مثال: كريم"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition font-medium">
                 </div>
 
-                <!-- Prénom -->
+                <!-- اللقب / النسب -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Prénom <span class="text-rose-500">*</span></label>
-                    <input type="text" name="first_name" required value="{{ client.first_name or '' }}" placeholder="Ex: Karim"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">اللقب / النسب <span class="text-rose-500">*</span></label>
+                    <input type="text" name="last_name" required value="{{ client.last_name or '' }}" placeholder="مثال: بناني"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition font-medium">
                 </div>
 
-                <!-- Téléphone -->
+                <!-- الهاتف -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Téléphone mobile <span class="text-rose-500">*</span></label>
-                    <input type="tel" name="phone" required value="{{ client.phone or '' }}" placeholder="Ex: +212 6 61 23 45 67"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">رقم الهاتف <span class="text-rose-500">*</span></label>
+                    <input type="tel" name="phone" required value="{{ client.phone or '' }}" placeholder="مثال: 0661234567" dir="ltr"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition text-right font-mono">
                 </div>
 
-                <!-- Email -->
+                <!-- البريد الإلكتروني -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Adresse Email</label>
-                    <input type="email" name="email" value="{{ client.email or '' }}" placeholder="patient@exemple.com"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">البريد الإلكتروني (اختياري)</label>
+                    <input type="email" name="email" value="{{ client.email or '' }}" placeholder="patient@example.com" dir="ltr"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition text-right font-mono">
                 </div>
 
-                <!-- Adresse -->
+                <!-- العنوان -->
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Adresse postale / Ville</label>
-                    <input type="text" name="address" value="{{ client.address or '' }}" placeholder="Ex: 12 Rue Al Massira, Casablanca"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">العنوان أو الحي / المدينة</label>
+                    <input type="text" name="address" value="{{ client.address or '' }}" placeholder="مثال: شارع المسيرة، المعاريف، الدار البيضاء"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition font-medium">
                 </div>
 
-                <!-- Notes médicales & Particularités prothétiques -->
+                <!-- الملاحظات الطبية -->
                 <div class="sm:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Observations & Spécificités prothétiques</label>
-                    <textarea name="medical_notes" rows="3" placeholder="Sensibilité, occlusion, bruxisme, antécédents, préférences esthétiques..."
-                              class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">{{ client.medical_notes or '' }}</textarea>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ملاحظات طبية وسوابق علاجية</label>
+                    <textarea name="medical_notes" rows="3" placeholder="حساسية لثة، صرير الأسنان، ضغط دم، تفضيلات جمالية، ملاحظات للمختبر..."
+                              class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition font-medium">{{ client.medical_notes or '' }}</textarea>
                 </div>
             </div>
 
-            <!-- BOUTONS D'ACTION -->
-            <div class="flex items-center justify-end space-x-3 pt-6 mt-6 border-t border-slate-100">
+            <!-- أزرار الإجراءات -->
+            <div class="flex items-center justify-end space-x-3 space-x-reverse pt-6 mt-6 border-t border-slate-100">
                 <a href="{{ url_for('clients_list') }}" class="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-lg transition">
-                    Annuler
+                    إلغاء
                 </a>
                 <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-brand-600 hover:bg-brand-700 rounded-lg shadow-sm transition active:scale-95">
-                    {% if is_edit %}Enregistrer les modifications{% else %}Créer le dossier patient{% endif %}
+                    {% if is_edit %}حفظ التعديلات{% else %}تسجيل المريض{% endif %}
                 </button>
             </div>
         </form>

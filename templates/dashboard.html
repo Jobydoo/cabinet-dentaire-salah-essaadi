@@ -1,43 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}Tableau de Bord - Cabinet de Prothèse Dentaire{% endblock %}
+{% block title %}لوحة التحكم الرئيسية - {{ cabinet_name }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <!-- EN-TÊTE DU TABLEAU DE BORD SIMPLIFIÉ -->
+    <!-- ترويسة لوحة التحكم البسيطة -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-slate-200">
         <div>
-            <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">Cabinet dentaire de Salah Essaadi</h1>
-            <p class="text-sm text-slate-500 mt-0.5">Gestion simplifiée des patients, rendez-vous du jour et encaissements.</p>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ cabinet_name }}</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">نظام مبسط وسهل لإدارة ملفات المرضى، مواعيد العيادة ومتابعة المداخيل.</p>
         </div>
-        <!-- 4 BOUTONS D'ACTIONS RAPIDES ESSENTIELLES -->
+        <!-- 4 أزرار إجراءات سريعة ومباشرة -->
         <div class="flex flex-wrap items-center gap-2">
             <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-user-plus mr-1.5"></i> + Patient
+                <i class="fa-solid fa-user-plus ml-1.5"></i> + مريض جديد
             </a>
             <a href="{{ url_for('appointments_list') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-sky-600 hover:bg-sky-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-calendar-plus mr-1.5"></i> + RDV
+                <i class="fa-solid fa-calendar-plus ml-1.5"></i> + موعد جديد
             </a>
             <a href="{{ url_for('payments_list') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-file-invoice-dollar mr-1.5"></i> + Encaisser
+                <i class="fa-solid fa-file-invoice-dollar ml-1.5"></i> + تسجيل دفعة
             </a>
             <a href="{{ url_for('qrcode_module') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-qrcode mr-1.5"></i> QR Code 5★
+                <i class="fa-solid fa-qrcode ml-1.5"></i> تقييم جوجل 5★
             </a>
         </div>
     </div>
 
-    <!-- STATISTIQUES CLÉS & KPI -->
+    <!-- الإحصائيات الرئيسية المباشرة (4 بطاقات) -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- 1. Total Patients -->
+        <!-- 1. إجمالي المرضى -->
         <div class="card-soft p-5 bg-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Patients Enregistrés</p>
-                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ metrics.total_clients }}</p>
-                    <span class="inline-flex items-center text-xs text-emerald-600 font-medium mt-1">
-                        <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Dossiers actifs
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">المرضى المسجلين</p>
+                    <p class="text-2xl font-black text-slate-900 mt-1">{{ metrics.total_clients }}</p>
+                    <span class="inline-flex items-center text-xs text-emerald-600 font-bold mt-1">
+                        <i class="fa-solid fa-circle-check ml-1 text-[10px]"></i> ملفات طبية نشطة
                     </span>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xl">
@@ -46,30 +46,30 @@
             </div>
         </div>
 
-        <!-- 2. Prothèses en cours d'élaboration -->
+        <!-- 2. أعمال وتركيبات جارية -->
         <div class="card-soft p-5 bg-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Travaux Labo en cours</p>
-                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ metrics.active_prosthetics }}</p>
-                    <span class="inline-flex items-center text-xs text-indigo-600 font-medium mt-1">
-                        <i class="fa-solid fa-cubes mr-1 text-[10px]"></i> CFAO, Zircone & Céramiques
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">أعمال قيد الإنجاز</p>
+                    <p class="text-2xl font-black text-slate-900 mt-1">{{ metrics.active_prosthetics }}</p>
+                    <span class="inline-flex items-center text-xs text-indigo-600 font-bold mt-1">
+                        <i class="fa-solid fa-tooth ml-1 text-[10px]"></i> تركيبات وأطقم
                     </span>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl">
-                    <i class="fa-solid fa-tooth"></i>
+                    <i class="fa-solid fa-teeth"></i>
                 </div>
             </div>
         </div>
 
-        <!-- 3. Rendez-vous du jour -->
+        <!-- 3. مواعيد اليوم -->
         <div class="card-soft p-5 bg-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Séances Aujourd'hui</p>
-                    <p class="text-2xl font-bold text-slate-900 mt-1">{{ metrics.today_appointments_count }}</p>
-                    <span class="inline-flex items-center text-xs text-sky-600 font-medium mt-1">
-                        <i class="fa-regular fa-clock mr-1 text-[10px]"></i> Fauteuil & Ajustements
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">مواعيد وجلسات اليوم</p>
+                    <p class="text-2xl font-black text-slate-900 mt-1">{{ metrics.today_appointments_count }}</p>
+                    <span class="inline-flex items-center text-xs text-sky-600 font-bold mt-1">
+                        <i class="fa-regular fa-clock ml-1 text-[10px]"></i> جدول العيادة اليوم
                     </span>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xl">
@@ -78,15 +78,15 @@
             </div>
         </div>
 
-        <!-- 4. Reste à percevoir / Trésorerie -->
+        <!-- 4. المبالغ المتبقية للتحصيل -->
         <div class="card-soft p-5 bg-white">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Soldes Restants Dûs</p>
-                    <p class="text-2xl font-bold text-amber-600 mt-1">{{ metrics.financial.total_remaining }} {{ cabinet_currency }}</p>
+                    <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">المتبقي غير المستوفى</p>
+                    <p class="text-2xl font-black text-amber-600 mt-1">{{ metrics.financial.total_remaining }} {{ cabinet_currency }}</p>
                     <div class="flex items-center text-xs text-slate-500 mt-1">
-                        <span>Recouvrement : </span>
-                        <span class="font-semibold text-emerald-600 ml-1">{{ metrics.financial.recovery_rate }}%</span>
+                        <span>نسبة السداد: </span>
+                        <span class="font-bold text-emerald-600 mr-1">{{ metrics.financial.recovery_rate }}%</span>
                     </div>
                 </div>
                 <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl">
@@ -96,58 +96,58 @@
         </div>
     </div>
 
-    <!-- BANDEAU PIPELINE DES PROTHÈSES PAR ÉTAPE -->
+    <!-- شريط مراحل صناعة التركيبات السنية -->
     <div class="card-soft p-5 bg-white">
         <div class="flex items-center justify-between mb-4">
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 space-x-reverse">
                 <i class="fa-solid fa-sliders text-brand-600"></i>
-                <h2 class="text-base font-bold text-slate-800">Pipeline de fabrication prothétique</h2>
+                <h2 class="text-base font-bold text-slate-800">مراحل إنجاز وصناعة التركيبات</h2>
             </div>
-            <span class="text-xs text-slate-500 font-medium">Flux atelier & laboratoire</span>
+            <span class="text-xs text-slate-400 font-medium">متابعة دقيقة لكل مرحلة</span>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
             <div class="p-3 bg-purple-50 rounded-xl border border-purple-100">
-                <span class="text-xs font-semibold text-purple-700 block">1. Empreintes</span>
-                <span class="text-2xl font-extrabold text-purple-900 mt-1 block">{{ metrics.status_counts.empreinte }}</span>
-                <span class="text-[10px] text-purple-600">Reçues / Moulage</span>
+                <span class="text-xs font-bold text-purple-700 block">1. أخذ المقاس</span>
+                <span class="text-2xl font-black text-purple-900 mt-1 block">{{ metrics.status_counts.empreinte }}</span>
+                <span class="text-[10px] text-purple-600 font-medium">طبعة الفم</span>
             </div>
             <div class="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
-                <span class="text-xs font-semibold text-indigo-700 block">2. CFAO / Usinage</span>
-                <span class="text-2xl font-extrabold text-indigo-900 mt-1 block">{{ metrics.status_counts.conception_cfao }}</span>
-                <span class="text-[10px] text-indigo-600">Modélisation 3D</span>
+                <span class="text-xs font-bold text-indigo-700 block">2. التصميم الرقمي</span>
+                <span class="text-2xl font-black text-indigo-900 mt-1 block">{{ metrics.status_counts.conception_cfao }}</span>
+                <span class="text-[10px] text-indigo-600 font-medium">نمذجة ثلاثية الأبعاد</span>
             </div>
             <div class="p-3 bg-blue-50 rounded-xl border border-blue-100">
-                <span class="text-xs font-semibold text-blue-700 block">3. Armatures</span>
-                <span class="text-2xl font-extrabold text-blue-900 mt-1 block">{{ metrics.status_counts.armature }}</span>
-                <span class="text-[10px] text-blue-600">Coulée / Stellite</span>
+                <span class="text-xs font-bold text-blue-700 block">3. صناعة الهيكل</span>
+                <span class="text-2xl font-black text-blue-900 mt-1 block">{{ metrics.status_counts.armature }}</span>
+                <span class="text-[10px] text-blue-600 font-medium">صب معدن / زركونيا</span>
             </div>
             <div class="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                <span class="text-xs font-semibold text-amber-700 block">4. Essayage</span>
-                <span class="text-2xl font-extrabold text-amber-900 mt-1 block">{{ metrics.status_counts.essayage }}</span>
-                <span class="text-[10px] text-amber-600">Séance en bouche</span>
+                <span class="text-xs font-bold text-amber-700 block">4. التجربة بالفم</span>
+                <span class="text-2xl font-black text-amber-900 mt-1 block">{{ metrics.status_counts.essayage }}</span>
+                <span class="text-[10px] text-amber-600 font-medium">جلسة القياس</span>
             </div>
             <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-100 col-span-2 sm:col-span-1">
-                <span class="text-xs font-semibold text-emerald-700 block">5. Finition</span>
-                <span class="text-2xl font-extrabold text-emerald-900 mt-1 block">{{ metrics.status_counts.ceramique_finition }}</span>
-                <span class="text-[10px] text-emerald-600">Céramique / Glaçage</span>
+                <span class="text-xs font-bold text-emerald-700 block">5. اللمسات الأخيرة</span>
+                <span class="text-2xl font-black text-emerald-900 mt-1 block">{{ metrics.status_counts.ceramique_finition }}</span>
+                <span class="text-[10px] text-emerald-600 font-medium">السيراميك والتلميع</span>
             </div>
         </div>
     </div>
 
-    <!-- DOUBLE SECTION PRINCIPALE -->
+    <!-- قسمين رئيسيين (أعمال جارية + مواعيد ودفعات) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- SECTION GAUCHE : TRAVAUX PROTHÉTIQUES EN COURS (7 COLONNES) -->
+        <!-- القسم الأيمن: التركيبات السنية قيد الإنجاز (7 أعمدة) -->
         <div class="lg:col-span-7 space-y-4">
             <div class="card-soft p-5 bg-white">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 space-x-reverse">
                         <i class="fa-solid fa-list-check text-brand-600"></i>
-                        <h2 class="text-base font-bold text-slate-800">Prothèses & Travaux urgents</h2>
+                        <h2 class="text-base font-bold text-slate-800">التركيبات وأعمال المختبر الجارية</h2>
                     </div>
-                    <a href="{{ url_for('clients_list') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                        Voir tous les dossiers <i class="fa-solid fa-arrow-right ml-1"></i>
+                    <a href="{{ url_for('clients_list') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700">
+                        عرض كل المرضى <i class="fa-solid fa-arrow-left mr-1"></i>
                     </a>
                 </div>
 
@@ -157,23 +157,23 @@
                             <div class="p-4 rounded-xl border border-slate-200 hover:border-brand-200 hover:bg-slate-50/50 transition">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="font-bold text-sm text-slate-900">{{ treat.title }}</span>
+                                        <div class="flex items-center space-x-2 space-x-reverse">
+                                            <span class="font-black text-sm text-slate-900">{{ treat.title }}</span>
                                             {% if treat.teeth_numbers %}
-                                                <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-medium">Dents: {{ treat.teeth_numbers }}</span>
+                                                <span class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono font-bold">السن: {{ treat.teeth_numbers }}</span>
                                             {% endif %}
                                             {% if treat.shade %}
-                                                <span class="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">Teinte: {{ treat.shade }}</span>
+                                                <span class="text-[11px] bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-bold">اللون: {{ treat.shade }}</span>
                                             {% endif %}
                                         </div>
                                         <div class="flex items-center gap-3 text-xs text-slate-500 mt-1.5">
-                                            <span class="font-medium text-slate-700"><i class="fa-solid fa-user mr-1 text-slate-400"></i>{{ treat.client_name }}</span>
+                                            <span class="font-bold text-slate-700"><i class="fa-solid fa-user ml-1 text-slate-400"></i>{{ treat.client_name }}</span>
                                             {% if treat.delivery_date %}
-                                                <span><i class="fa-regular fa-clock mr-1 text-slate-400"></i>Livraison prévue: <strong>{{ treat.delivery_date }}</strong></span>
+                                                <span><i class="fa-regular fa-clock ml-1 text-slate-400"></i>الموعد المتوقع: <strong>{{ treat.delivery_date }}</strong></span>
                                             {% endif %}
                                         </div>
                                     </div>
-                                    <div class="text-right flex flex-col items-end">
+                                    <div class="text-left flex flex-col items-end">
                                         <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold
                                             {% if treat.status == 'empreinte' %}bg-purple-100 text-purple-800
                                             {% elif treat.status == 'conception_cfao' %}bg-indigo-100 text-indigo-800
@@ -183,11 +183,11 @@
                                             {% else %}bg-slate-100 text-slate-800{% endif %}">
                                             {{ treat.status_label }}
                                         </span>
-                                        <span class="text-xs font-semibold text-slate-800 mt-1">{{ treat.total_cost }} {{ cabinet_currency }}</span>
+                                        <span class="text-xs font-black text-slate-800 mt-1">{{ treat.total_cost }} {{ cabinet_currency }}</span>
                                     </div>
                                 </div>
 
-                                <!-- Barre de progression de fabrication -->
+                                <!-- شريط تقدم العمل -->
                                 <div class="w-full bg-slate-100 h-1.5 rounded-full mt-3 overflow-hidden">
                                     <div class="bg-brand-500 h-1.5 rounded-full transition-all duration-500" style="width: {{ treat.progress_percentage }}%"></div>
                                 </div>
@@ -196,25 +196,25 @@
                     </div>
                 {% else %}
                     <div class="text-center py-8 text-slate-400">
-                        <i class="fa-solid fa-check-double text-3xl mb-2"></i>
-                        <p class="text-sm">Aucun travail de laboratoire en attente.</p>
+                        <i class="fa-solid fa-check-double text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs font-bold">لا توجد أعمال مختبر جارية حالياً.</p>
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- SECTION DROITE : RENDEZ-VOUS DU JOUR & ACTIONS (5 COLONNES) -->
+        <!-- القسم الأيسر: مواعيد اليوم + آخر الدفعات (5 أعمدة) -->
         <div class="lg:col-span-5 space-y-4">
             
-            <!-- RDV DU JOUR / SÉANCES -->
+            <!-- مواعيد اليوم والجلسات القادمة -->
             <div class="card-soft p-5 bg-white">
                 <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 space-x-reverse">
                         <i class="fa-regular fa-calendar-check text-brand-600"></i>
-                        <h2 class="text-base font-bold text-slate-800">Séances du jour & à venir</h2>
+                        <h2 class="text-base font-bold text-slate-800">مواعيد وجلسات اليوم</h2>
                     </div>
-                    <a href="{{ url_for('appointments_list') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">
-                        Gérer l'agenda
+                    <a href="{{ url_for('appointments_list') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700">
+                        جدول المواعيد
                     </a>
                 </div>
 
@@ -223,38 +223,42 @@
                         {% for appt in metrics.upcoming_appointments %}
                             <div class="py-3 flex items-start justify-between gap-3">
                                 <div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="text-xs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded">{{ appt.start_time }}</span>
-                                        <span class="text-xs font-semibold text-slate-800">{{ appt.appointment_date }}</span>
-                                        <span class="text-xs text-slate-400">({{ appt.duration_minutes }} min)</span>
+                                    <div class="flex items-center space-x-2 space-x-reverse">
+                                        <span class="text-xs font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded font-mono">{{ appt.start_time }}</span>
+                                        <span class="text-xs font-bold text-slate-800">{{ appt.appointment_date }}</span>
+                                        <span class="text-xs text-slate-400">({{ appt.duration_minutes }} دقيقة)</span>
                                     </div>
-                                    <p class="font-bold text-sm text-slate-900 mt-1">{{ appt.client_name }}</p>
-                                    <p class="text-xs text-slate-500"><i class="fa-solid fa-tooth mr-1 text-slate-400"></i>{{ appt.act_type }}</p>
+                                    <p class="font-black text-sm text-slate-900 mt-1">{{ appt.client_name }}</p>
+                                    <p class="text-xs text-slate-500 mt-0.5"><i class="fa-solid fa-tooth ml-1 text-slate-400"></i>{{ appt.act_type }}</p>
                                 </div>
-                                <span class="text-[11px] font-semibold px-2 py-0.5 rounded-full
+                                <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full
                                     {% if appt.status == 'confirme' %}bg-emerald-100 text-emerald-800
                                     {% elif appt.status == 'planifie' %}bg-sky-100 text-sky-800
                                     {% else %}bg-slate-100 text-slate-700{% endif %}">
-                                    {{ appt.status | capitalize }}
+                                    {% if appt.status == 'confirme' %}مؤكد
+                                    {% elif appt.status == 'planifie' %}محدد
+                                    {% elif appt.status == 'termine' %}مكتمل
+                                    {% elif appt.status == 'annule' %}ملغى
+                                    {% else %}{{ appt.status }}{% endif %}
                                 </span>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
                     <div class="text-center py-6 text-slate-400">
-                        <p class="text-xs">Aucun rendez-vous programmé prochainement.</p>
+                        <p class="text-xs font-medium">لا توجد مواعيد مبرمجة في هذا الوقت.</p>
                     </div>
                 {% endif %}
             </div>
 
-            <!-- ENCAISSEMENTS RÉCENTS -->
+            <!-- آخر المقبوضات والدفعات المستلمة -->
             <div class="card-soft p-5 bg-white">
                 <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-2 space-x-reverse">
                         <i class="fa-solid fa-receipt text-emerald-600"></i>
-                        <h2 class="text-base font-bold text-slate-800">Derniers règlements perçus</h2>
+                        <h2 class="text-base font-bold text-slate-800">آخر الدفعات المستلمة</h2>
                     </div>
-                    <a href="{{ url_for('payments_list') }}" class="text-xs font-semibold text-brand-600 hover:text-brand-700">Journal</a>
+                    <a href="{{ url_for('payments_list') }}" class="text-xs font-bold text-brand-600 hover:text-brand-700">دفتر المداخيل</a>
                 </div>
 
                 {% if metrics.recent_payments %}
@@ -262,15 +266,15 @@
                         {% for pay in metrics.recent_payments[:4] %}
                             <div class="py-2.5 flex items-center justify-between text-xs">
                                 <div>
-                                    <span class="font-bold text-slate-800 block">{{ pay.client_name }}</span>
-                                    <span class="text-slate-400">{{ pay.payment_date }} • Mode: {{ pay.payment_method | capitalize }}</span>
+                                    <span class="font-black text-slate-800 block">{{ pay.client_name }}</span>
+                                    <span class="text-slate-400 text-[11px]">{{ pay.payment_date }} • {% if pay.payment_method == 'especes' %}نقداً{% elif pay.payment_method == 'carte' %}بطاقة بنكية{% elif pay.payment_method == 'virement' %}تحويل بنكي{% elif pay.payment_method == 'cheque' %}شيك{% else %}{{ pay.payment_method }}{% endif %}</span>
                                 </div>
-                                <span class="font-bold text-emerald-600 text-sm">+{{ pay.amount }} {{ cabinet_currency }}</span>
+                                <span class="font-black text-emerald-600 text-sm font-mono">+{{ pay.amount }} {{ cabinet_currency }}</span>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
-                    <p class="text-xs text-slate-400 py-3 text-center">Aucun paiement enregistré.</p>
+                    <p class="text-xs text-slate-400 py-3 text-center">لا توجد دفعات مسجلة مؤخراً.</p>
                 {% endif %}
             </div>
 

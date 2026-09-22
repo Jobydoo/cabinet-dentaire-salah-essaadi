@@ -15,28 +15,28 @@ if not secret_key:
 app.secret_key = secret_key
 app.config["SECRET_KEY"] = secret_key
 
-# Configuration globale pour le cabinet dentaire
-CABINET_NAME = os.getenv("CABINET_NAME", "Cabinet dentaire de Salah Essaadi")
+# الإعدادات العامة لعيادة طب الأسنان
+CABINET_NAME = os.getenv("CABINET_NAME", "عيادة الدكتور صلاح السعدي لطب وجراحة الأسنان")
 CABINET_PHONE = os.getenv("CABINET_PHONE", "+212 5 22 00 11 22")
-CABINET_ADDRESS = os.getenv("CABINET_ADDRESS", "Boulevard d'Anfa, Casablanca")
-CABINET_CURRENCY = os.getenv("CABINET_CURRENCY", "DH")
+CABINET_ADDRESS = os.getenv("CABINET_ADDRESS", "شارع أنفا، الدار البيضاء")
+CABINET_CURRENCY = os.getenv("CABINET_CURRENCY", "درهم")
 DEFAULT_GOOGLE_MAPS_URL = os.getenv(
     "GOOGLE_MAPS_REVIEW_URL",
     "https://search.google.com/local/writereview?placeid=ChIJN1t_tDeuEmsRUsoyG83frY4"
 )
 
-# Liste des actes dentaires / types de séances
+# قائمة التدخلات الطبية السريرية / أنواع الجلسات
 DENTAL_ACTS = [
-    "Prise d'empreinte (silicone / optique)",
-    "Coulée & enregistrement d'occlusion",
-    "Essayage armature (métal / zircone)",
-    "Essayage maquette cire / biscuit",
-    "Pose de prothèse finale & scellement",
-    "Ajustement & Retouche occlusion",
-    "Contrôle prothétique post-pose",
-    "Détartrage & Polissage de préparation",
-    "Extraction préalable",
-    "Consultation initiale & Devis"
+    "أخذ القياس / طبعة الأسنان",
+    "صب وتجهيز قالب الأسنان وتحديد الإطباق",
+    "تجربة هيكل التركيبة (معدن / زركونيا)",
+    "تجربة الشمع والشكل الجمالي",
+    "تركيب وتثبيت التركيبة النهائية",
+    "تعديل وضبط الإطباق والعضة",
+    "فحص ومتابعة دورية بعد العلاج",
+    "تنظيف وتلميع الأسنان وإزالة الجير",
+    "خلع سن أو ضرس",
+    "استشارة وكشف أولي مع خطة العلاج"
 ]
 
 @app.context_processor
@@ -99,7 +99,7 @@ def client_create():
         medical_notes = request.form.get("medical_notes", "").strip()
 
         if not first_name or not last_name or not phone:
-            flash("Veuillez renseigner au minimum le nom, le prénom et le numéro de téléphone.", "danger")
+            flash("يرجى ملء الاسم الشخصي والعائلي ورقم الهاتف على الأقل.", "danger")
             return render_template("clients/form.html", client={})
 
         new_client = db_service.create_client({
@@ -110,7 +110,7 @@ def client_create():
             "address": address,
             "medical_notes": medical_notes
         })
-        flash(f"Patient {first_name} {last_name} enregistré avec succès !", "success")
+        flash(f"تم تسجيل المريض {first_name} {last_name} بنجاح !", "success")
         return redirect(url_for("client_view", client_id=new_client["id"]))
 
     return render_template("clients/form.html", client={}, is_edit=False)
@@ -119,7 +119,7 @@ def client_create():
 def client_view(client_id):
     client = db_service.get_client_by_id(client_id)
     if not client:
-        flash("Patient introuvable.", "warning")
+        flash("ملف المريض غير موجود.", "warning")
         return redirect(url_for("clients_list"))
 
     treatments = db_service.get_treatments_by_client(client_id)
@@ -141,7 +141,7 @@ def client_view(client_id):
 def client_edit(client_id):
     client = db_service.get_client_by_id(client_id)
     if not client:
-        flash("Patient introuvable.", "warning")
+        flash("ملف المريض غير موجود.", "warning")
         return redirect(url_for("clients_list"))
 
     if request.method == "POST":
@@ -153,7 +153,7 @@ def client_edit(client_id):
         medical_notes = request.form.get("medical_notes", "").strip()
 
         if not first_name or not last_name or not phone:
-            flash("Le nom, prénom et téléphone sont obligatoires.", "danger")
+            flash("الاسم الشخصي والعائلي ورقم الهاتف معلومات إلزامية.", "danger")
             return render_template("clients/form.html", client=client, is_edit=True)
 
         db_service.update_client(client_id, {
@@ -164,7 +164,7 @@ def client_edit(client_id):
             "address": address,
             "medical_notes": medical_notes
         })
-        flash("Informations du patient mises à jour.", "success")
+        flash("تم تحديث معلومات المريض بنجاح.", "success")
         return redirect(url_for("client_view", client_id=client_id))
 
     return render_template("clients/form.html", client=client, is_edit=True)
@@ -172,11 +172,11 @@ def client_edit(client_id):
 @app.route("/clients/<client_id>/delete", methods=["POST"])
 def client_delete(client_id):
     db_service.delete_client(client_id)
-    flash("Dossier patient supprimé.", "info")
+    flash("تم حذف ملف المريض.", "info")
     return redirect(url_for("clients_list"))
 
 # ==============================================================================
-# ROUTES : PROTHÈSES & TRAITEMENTS
+# ROUTES : PROTHÈSES & TRAITEMENTS (التركيبات وأعمال المختبر)
 # ==============================================================================
 @app.route("/treatments/add", methods=["POST"])
 def treatment_add():
@@ -195,7 +195,7 @@ def treatment_add():
         total_cost_val = 0.0
 
     if not client_id or not title:
-        flash("Veuillez préciser la désignation de la prothèse.", "danger")
+        flash("يرجى تحديد مسمى العمل أو التركيبة السنية.", "danger")
         return redirect(url_for("client_view", client_id=client_id))
 
     db_service.create_treatment({
@@ -208,7 +208,7 @@ def treatment_add():
         "delivery_date": delivery_date,
         "notes": notes
     })
-    flash(f"Travail prothétique '{title}' ajouté avec succès.", "success")
+    flash(f"تمت إضافة التركيبة '{title}' بنجاح إلى ملف المريض.", "success")
     return redirect(url_for("client_view", client_id=client_id))
 
 @app.route("/treatments/<treatment_id>/status", methods=["GET", "POST"])
@@ -218,7 +218,7 @@ def treatment_update_status(treatment_id):
         client_id = request.form.get("client_id")
         if new_status:
             db_service.update_treatment_status(treatment_id, new_status)
-            flash("Statut de la prothèse actualisé.", "success")
+            flash("تم تحديث مرحلة الإنجاز بنجاح.", "success")
         if client_id:
             return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("dashboard"))
@@ -227,11 +227,11 @@ def treatment_update_status(treatment_id):
 def treatment_delete(treatment_id):
     client_id = request.form.get("client_id")
     db_service.delete_treatment(treatment_id)
-    flash("Travail prothétique supprimé.", "info")
+    flash("تم حذف التركيبة السنية.", "info")
     return redirect(url_for("client_view", client_id=client_id))
 
 # ==============================================================================
-# ROUTES : SÉANCES & RENDEZ-VOUS
+# ROUTES : SÉANCES & RENDEZ-VOUS (الجلسات والمواعيد)
 # ==============================================================================
 @app.route("/appointments")
 def appointments_list():
@@ -252,13 +252,13 @@ def appointment_add():
     appointment_date = request.form.get("appointment_date")
     start_time = request.form.get("start_time")
     duration_minutes = request.form.get("duration_minutes", "30")
-    act_type = request.form.get("act_type", "Consultation")
+    act_type = request.form.get("act_type", "استشارة وكشف أولي مع خطة العلاج")
     status = request.form.get("status", "planifie")
     notes = request.form.get("notes", "").strip()
     redirect_to = request.form.get("redirect_to", "appointments")
 
     if not client_id or not appointment_date or not start_time:
-        flash("Veuillez sélectionner le patient, la date et l'heure du rendez-vous.", "danger")
+        flash("يرجى اختيار المريض وتحديد تاريخ ووقت الموعد.", "danger")
         if redirect_to == "client":
             return redirect(url_for("client_view", client_id=client_id))
         return redirect(url_for("appointments_list"))
@@ -272,7 +272,7 @@ def appointment_add():
         "status": status,
         "notes": notes
     })
-    flash("Rendez-vous planifié avec succès.", "success")
+    flash("تم حجز الموعد بنجاح في الأجندة.", "success")
     if redirect_to == "client":
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("appointments_list"))
@@ -286,7 +286,7 @@ def appointment_update_status(appointment_id):
 
         if status:
             db_service.update_appointment_status(appointment_id, status)
-            flash("Statut de la séance actualisé.", "success")
+            flash("تم تحديث حالة الموعد.", "success")
 
         if redirect_to == "client" and client_id:
             return redirect(url_for("client_view", client_id=client_id))
@@ -296,13 +296,13 @@ def appointment_update_status(appointment_id):
 def appointment_delete(appointment_id):
     client_id = request.form.get("client_id")
     db_service.delete_appointment(appointment_id)
-    flash("Rendez-vous supprimé.", "info")
+    flash("تم حذف الموعد من الأجندة.", "info")
     if client_id:
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("appointments_list"))
 
 # ==============================================================================
-# ROUTES : PAIEMENTS & FACTURATION ÉCHELONNÉE
+# ROUTES : PAIEMENTS & FACTURATION ÉCHELONNÉE (المداخيل والدفعات)
 # ==============================================================================
 @app.route("/payments")
 def payments_list():
@@ -328,7 +328,7 @@ def payment_add():
         amount_val = 0.0
 
     if not client_id or amount_val <= 0:
-        flash("Montant du versement invalide.", "danger")
+        flash("يرجى إدخال مبلغ دفع صالح أكبر من الصفر.", "danger")
         if redirect_to == "client":
             return redirect(url_for("client_view", client_id=client_id))
         return redirect(url_for("payments_list"))
@@ -342,7 +342,7 @@ def payment_add():
         "next_payment_date": next_payment_date,
         "notes": notes
     })
-    flash(f"Versement de {amount_val} {CABINET_CURRENCY} enregistré. Solde actualisé !", "success")
+    flash(f"تم تسجيل دفعة بقيمة {amount_val} {CABINET_CURRENCY} بنجاح. تم تحديث الباقي المستحق !", "success")
 
     if redirect_to == "client":
         return redirect(url_for("client_view", client_id=client_id))
@@ -352,7 +352,7 @@ def payment_add():
 def payment_delete(payment_id):
     client_id = request.form.get("client_id")
     db_service.delete_payment(payment_id)
-    flash("Paiement supprimé.", "info")
+    flash("تم حذف سجل الدفعة.", "info")
     if client_id:
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("payments_list"))
