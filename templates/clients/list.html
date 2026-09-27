@@ -5,13 +5,13 @@
 {% block content %}
 <div class="space-y-6">
 
-    <!-- الترويسة -->
+    <!-- الترويسة وأزرار الإجراءات -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
             <h1 class="text-2xl font-black text-slate-900 tracking-tight">سجل ملفات المرضى</h1>
-            <p class="text-xs sm:text-sm text-slate-500 mt-1">البحث السريع، متابعة التركيبات وأعمال المختبر، والمستحقات المالية.</p>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">البحث السريع، متابعة التركيبات، الجلسات والمستحقات المالية.</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2">
             <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
                 <i class="fa-solid fa-user-plus ml-1.5"></i> مريض جديد
             </a>
@@ -43,21 +43,119 @@
         </form>
 
         <!-- تصنيفات الحساب المالي -->
-        <div class="flex items-center space-x-1 space-x-reverse bg-slate-100 p-1 rounded-lg text-xs font-bold text-slate-600 self-stretch md:self-auto justify-center">
-            <a href="{{ url_for('clients_list', q=search_query) }}" class="px-3 py-1.5 rounded-md transition {% if not status_filter %}bg-white text-brand-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+        <div class="flex items-center space-x-1 space-x-reverse bg-slate-100 p-1 rounded-lg text-xs font-bold text-slate-600 self-stretch md:self-auto justify-center overflow-x-auto">
+            <a href="{{ url_for('clients_list', q=search_query) }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if not status_filter %}bg-white text-brand-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
                 الكل ({{ total_count }})
             </a>
-            <a href="{{ url_for('clients_list', q=search_query, status='balance_due') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'balance_due' %}bg-white text-amber-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+            <a href="{{ url_for('clients_list', q=search_query, status='balance_due') }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if status_filter == 'balance_due' %}bg-white text-amber-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
                 في انتظار السداد
             </a>
-            <a href="{{ url_for('clients_list', q=search_query, status='settled') }}" class="px-3 py-1.5 rounded-md transition {% if status_filter == 'settled' %}bg-white text-emerald-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+            <a href="{{ url_for('clients_list', q=search_query, status='settled') }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if status_filter == 'settled' %}bg-white text-emerald-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
                 مسدد بالكامل
             </a>
         </div>
     </div>
 
-    <!-- جدول المرضى البسيط والواضح -->
-    <div class="card-soft bg-white overflow-hidden">
+    <!-- طريقة العرض للهواتف والأجهزة اللوحية (Mobile Cards) -->
+    <div class="block md:hidden space-y-3">
+        {% if clients %}
+            {% for client in clients %}
+                <div class="card-soft p-4 bg-white border border-slate-200 hover:border-brand-300 transition shadow-sm space-y-3">
+                    <div class="flex items-start justify-between">
+                        <!-- اسم المريض والصورة الرمزية -->
+                        <div class="flex items-center space-x-3 space-x-reverse">
+                            <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-400 text-white flex items-center justify-center font-black text-sm uppercase flex-shrink-0 shadow-sm">
+                                {{ client.first_name[0] if client.first_name else 'م' }}
+                            </div>
+                            <div>
+                                <a href="{{ url_for('client_view', client_id=client.id) }}" class="font-black text-sm text-slate-900 hover:text-brand-600 transition block">
+                                    {{ client.first_name }} {{ client.last_name }}
+                                </a>
+                                <div class="flex items-center gap-2 mt-0.5">
+                                    <a href="tel:{{ client.phone }}" class="text-[11px] font-mono font-bold text-slate-600 hover:text-brand-600 flex items-center">
+                                        <i class="fa-solid fa-phone text-[10px] ml-1 text-slate-400"></i>{{ client.phone }}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- شارة السداد -->
+                        <div>
+                            {% if client.remaining_balance > 0 %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black bg-amber-100 text-amber-800 font-mono">
+                                    باقي: {{ client.remaining_balance }}
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">
+                                    <i class="fa-solid fa-check ml-1 text-[9px]"></i> مسدد
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- الأرقام المالية السريعة -->
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs py-2 bg-slate-50 rounded-xl font-mono">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">إجمالي العلاج</span>
+                            <span class="font-black text-slate-800">{{ client.total_quote }} {{ cabinet_currency }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">المدفوع</span>
+                            <span class="font-bold text-emerald-600">{{ client.total_paid }} {{ cabinet_currency }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">الدفعة القادمة</span>
+                            <span class="font-bold text-slate-700 text-[11px]">
+                                {{ client.next_payment_date if client.next_payment_date else '-' }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- أزرار الإجراءات السريعة (عرض، تعديل ✏️، تكرار 📑، فاتورة 🧾، حذف 🗑️) -->
+                    <div class="flex items-center justify-between pt-1 border-t border-slate-100">
+                        <div class="flex items-center gap-1.5 flex-wrap">
+                            <!-- عرض الملف -->
+                            <a href="{{ url_for('client_view', client_id=client.id) }}" class="p-2 text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition" title="عرض ملف المريض">
+                                <i class="fa-solid fa-folder-open ml-1"></i> الملف
+                            </a>
+                            <!-- تعديل ✏️ -->
+                            <a href="{{ url_for('client_edit', client_id=client.id) }}" class="p-2 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition" title="تعديل بيانات المريض">
+                                <i class="fa-solid fa-pen ml-1"></i> تعديل
+                            </a>
+                            <!-- تكرار 📑 -->
+                            <a href="{{ url_for('client_duplicate', client_id=client.id) }}" class="p-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition" title="تكرار / نسخ ملف المريض">
+                                <i class="fa-solid fa-copy ml-1"></i> تكرار
+                            </a>
+                        </div>
+
+                        <div class="flex items-center gap-1.5">
+                            <!-- فاتورة جديدة للمريض -->
+                            <a href="{{ url_for('invoice_create', client_id=client.id) }}" class="p-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition" title="إنشاء فاتورة">
+                                <i class="fa-solid fa-file-invoice"></i>
+                            </a>
+                            <!-- حذف 🗑️ -->
+                            <form method="POST" action="{{ url_for('client_delete', client_id=client.id) }}" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف ملف هذا المريض وكافة بياناته ؟');" class="inline">
+                                <button type="submit" class="p-2 text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title="حذف">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card-soft p-8 bg-white text-center text-slate-400">
+                <i class="fa-solid fa-user-slash text-3xl mb-2 text-slate-300"></i>
+                <p class="text-xs font-bold">لا يوجد أي مريض يطابق هذا البحث.</p>
+                <a href="{{ url_for('client_create') }}" class="mt-3 inline-block text-xs font-black text-brand-600 hover:underline">
+                    + تسجيل مريض جديد الآن
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- جدول شاشات سطح المكتب والكمبيوتر (Desktop Table) -->
+    <div class="hidden md:block card-soft bg-white overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-right border-collapse">
                 <thead>
@@ -129,15 +227,25 @@
                                     {% endif %}
                                 </td>
 
-                                <!-- إجراءات سريعة -->
+                                <!-- إجراءات سريعة (عرض، تعديل ✏️، تكرار 📑، فاتورة 🧾، حذف 🗑️) -->
                                 <td class="py-3.5 px-4 text-left">
                                     <div class="flex items-center justify-end space-x-1 space-x-reverse">
                                         <a href="{{ url_for('client_view', client_id=client.id) }}" class="p-1.5 text-brand-600 hover:bg-brand-50 rounded-lg transition" title="عرض ملف المريض">
                                             <i class="fa-solid fa-folder-open"></i>
                                         </a>
-                                        <a href="{{ url_for('client_edit', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:bg-slate-100 rounded-lg transition" title="تعديل">
+                                        <!-- تعديل ✏️ -->
+                                        <a href="{{ url_for('client_edit', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="تعديل">
                                             <i class="fa-solid fa-pen"></i>
                                         </a>
+                                        <!-- تكرار 📑 -->
+                                        <a href="{{ url_for('client_duplicate', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="تكرار / نسخ الملف">
+                                            <i class="fa-solid fa-copy"></i>
+                                        </a>
+                                        <!-- فاتورة -->
+                                        <a href="{{ url_for('invoice_create', client_id=client.id) }}" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="فاتورة جديدة">
+                                            <i class="fa-solid fa-file-invoice"></i>
+                                        </a>
+                                        <!-- حذف 🗑️ -->
                                         <form method="POST" action="{{ url_for('client_delete', client_id=client.id) }}" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف ملف هذا المريض وكافة بياناته ؟');" class="inline">
                                             <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="حذف">
                                                 <i class="fa-solid fa-trash-can"></i>

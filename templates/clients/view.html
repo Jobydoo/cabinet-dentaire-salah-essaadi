@@ -12,13 +12,24 @@
             <span>/</span>
             <span class="text-slate-800 font-black">{{ client.first_name }} {{ client.last_name }}</span>
         </div>
-        <div class="flex items-center gap-2">
-            <a href="{{ url_for('client_edit', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm">
-                <i class="fa-solid fa-pen-to-square ml-1.5 text-slate-400"></i> تعديل الملف
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- تعديل الملف ✏️ -->
+            <a href="{{ url_for('client_edit', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm active:scale-95">
+                <i class="fa-solid fa-pen ml-1.5 text-sky-600"></i> تعديل الملف
             </a>
-            <button onclick="window.print()" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm">
-                <i class="fa-solid fa-print ml-1.5 text-slate-400"></i> طباعة الملف
+            <!-- تكرار / نسخ الملف 📑 -->
+            <a href="{{ url_for('client_duplicate', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm active:scale-95" title="تكرار / نسخ ملف المريض">
+                <i class="fa-solid fa-copy ml-1.5 text-amber-500"></i> تكرار الملف
+            </a>
+            <!-- إنشاء فاتورة 🧾 -->
+            <a href="{{ url_for('invoice_create', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition shadow-sm active:scale-95">
+                <i class="fa-solid fa-file-invoice ml-1.5 text-emerald-600"></i> فاتورة جديدة
+            </a>
+            <!-- طباعة الملف 🖨️ -->
+            <button onclick="window.print()" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm active:scale-95">
+                <i class="fa-solid fa-print ml-1.5 text-slate-500"></i> طباعة الملف
             </button>
+            <!-- حذف الملف 🗑️ -->
             <form method="POST" action="{{ url_for('client_delete', client_id=client.id) }}" onsubmit="return confirm('هل أنت متأكد من رغبتك في حذف هذا المريض وكافة بياناته ؟');" class="inline">
                 <button type="submit" class="p-1.5 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="حذف المريض">
                     <i class="fa-solid fa-trash-can"></i>
@@ -28,15 +39,15 @@
     </div>
 
     <!-- بطاقة هوية المريض -->
-    <div class="card-soft p-6 bg-white">
+    <div class="card-soft p-5 sm:p-6 bg-white border border-slate-200">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div class="flex items-start space-x-4 space-x-reverse">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-cyan-500 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-brand-500/20 flex-shrink-0">
+                <div class="w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-gradient-to-tr from-brand-600 to-cyan-500 text-white flex items-center justify-center font-black text-2xl shadow-md shadow-brand-500/20 flex-shrink-0">
                     {{ client.first_name[0] if client.first_name else 'م' }}
                 </div>
                 <div>
                     <div class="flex items-center space-x-3 space-x-reverse flex-wrap gap-y-2">
-                        <h1 class="text-2xl font-black text-slate-900">{{ client.first_name }} {{ client.last_name }}</h1>
+                        <h1 class="text-xl sm:text-2xl font-black text-slate-900">{{ client.first_name }} {{ client.last_name }}</h1>
                         {% if financials.remaining_balance == 0 and financials.total_quote > 0 %}
                             <span class="bg-emerald-100 text-emerald-800 text-xs font-black px-2.5 py-0.5 rounded-full">
                                 <i class="fa-solid fa-check ml-1 text-[10px]"></i> تم السداد بالكامل
@@ -88,7 +99,7 @@
     </div>
 
     <!-- شريط الملخص المالي للحساب -->
-    <div class="card-soft p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white">
+    <div class="card-soft p-5 bg-gradient-to-r from-slate-900 to-slate-800 text-white shadow-md">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
             <!-- إجمالي العلاج -->
             <div class="border-b sm:border-b-0 sm:border-l border-slate-700 pb-3 sm:pb-0 pl-4">
@@ -137,17 +148,18 @@
     <!-- الأقسام التفصيلية (عمود أيمن وأيسر) -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-        <!-- العمود الأيمن (7 أعمدة): التركيبات + المواعيد -->
+        <!-- العمود الأيمن (7 أعمدة): التركيبات + المواعيد + الفواتير -->
         <div class="lg:col-span-7 space-y-6">
 
-            <!-- قسم التركيبات وأعمال المختبر -->
-            <div class="card-soft p-5 bg-white">
+            <!-- 1. قسم التركيبات وأعمال المختبر -->
+            <div class="card-soft p-5 bg-white border border-slate-200">
                 <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                     <div class="flex items-center space-x-2 space-x-reverse">
                         <i class="fa-solid fa-tooth text-brand-600 text-lg"></i>
                         <h2 class="text-base font-bold text-slate-900">التركيبات وأعمال المختبر</h2>
+                        <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">{{ treatments | length }}</span>
                     </div>
-                    <button onclick="openModal('modal-add-treatment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition">
+                    <button onclick="openModal('modal-add-treatment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200 transition active:scale-95">
                         <i class="fa-solid fa-plus ml-1"></i> إضافة تركيبة
                     </button>
                 </div>
@@ -155,7 +167,7 @@
                 {% if treatments %}
                     <div class="space-y-4">
                         {% for treat in treatments %}
-                            <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-slate-300 transition">
+                            <div class="p-4 rounded-xl border border-slate-200 bg-white hover:border-brand-300 transition shadow-sm space-y-3">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
                                         <div class="flex items-center space-x-2 space-x-reverse flex-wrap gap-y-1">
@@ -180,10 +192,9 @@
                                 </div>
 
                                 <!-- شريط متابعة مرحلة الإنجاز -->
-                                <div class="mt-4 pt-3 border-t border-slate-100">
+                                <div class="pt-3 border-t border-slate-100">
                                     <div class="flex items-center justify-between text-[11px] font-bold text-slate-500 mb-2">
-                                        <span>مرحلة الإنجاز الحالية:</span>
-                                        <span class="text-brand-600 font-black">{{ treat.status_label }} ({{ treat.progress_percentage }}%)</span>
+                                        <span>مرحلة الإنجاز: <strong class="text-brand-600">{{ treat.status_label }} ({{ treat.progress_percentage }}%)</strong></span>
                                     </div>
 
                                     <!-- شريط التقدم المرئي -->
@@ -191,12 +202,12 @@
                                         <div class="bg-gradient-to-l from-brand-500 to-cyan-500 h-2 rounded-full transition-all duration-500" style="width: {{ treat.progress_percentage }}%"></div>
                                     </div>
 
-                                    <!-- تغيير المرحلة السريع -->
-                                    <div class="flex items-center justify-between gap-2 mt-2 bg-slate-50 p-2 rounded-lg">
-                                        <form method="POST" action="{{ url_for('treatment_update_status', treatment_id=treat.id) }}" class="flex items-center gap-2 flex-1">
+                                    <!-- الإجراءات (تغيير مرحلة، تعديل ✏️، تكرار 📑، حذف 🗑️) -->
+                                    <div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-2 rounded-xl">
+                                        <form method="POST" action="{{ url_for('treatment_update_status', treatment_id=treat.id) }}" class="flex items-center gap-1.5">
                                             <input type="hidden" name="client_id" value="{{ client.id }}">
-                                            <label class="text-[11px] font-bold text-slate-600 flex-shrink-0">تغيير المرحلة:</label>
-                                            <select name="status" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded px-2.5 py-1 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500">
+                                            <label class="text-[11px] font-bold text-slate-600 flex-shrink-0">المرحلة:</label>
+                                            <select name="status" onchange="this.form.submit()" class="text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-brand-500">
                                                 {% for st_key, st_info in status_labels.items() %}
                                                     <option value="{{ st_key }}" {% if treat.status == st_key %}selected{% endif %}>
                                                         {{ st_info.label }}
@@ -204,12 +215,24 @@
                                                 {% endfor %}
                                             </select>
                                         </form>
-                                        <form method="POST" action="{{ url_for('treatment_delete', treatment_id=treat.id) }}" onsubmit="return confirm('حذف هذا العمل التركيبي ؟');" class="inline">
-                                            <input type="hidden" name="client_id" value="{{ client.id }}">
-                                            <button type="submit" class="text-slate-400 hover:text-rose-600 p-1" title="حذف العمل">
-                                                <i class="fa-solid fa-trash-can text-xs"></i>
+
+                                        <div class="flex items-center gap-1">
+                                            <!-- تعديل ✏️ -->
+                                            <button onclick="openModal('modal-edit-treatment-{{ treat.id }}')" class="p-1.5 text-xs font-bold text-sky-700 bg-white hover:bg-sky-50 border border-slate-200 rounded-lg transition" title="تعديل التركيبة السنية">
+                                                <i class="fa-solid fa-pen ml-1"></i> تعديل
                                             </button>
-                                        </form>
+                                            <!-- تكرار 📑 -->
+                                            <a href="{{ url_for('treatment_duplicate', treatment_id=treat.id, client_id=client.id) }}" class="p-1.5 text-xs font-bold text-amber-700 bg-white hover:bg-amber-50 border border-slate-200 rounded-lg transition" title="تكرار / نسخ التركيبة السنية">
+                                                <i class="fa-solid fa-copy ml-1"></i> تكرار
+                                            </a>
+                                            <!-- حذف 🗑️ -->
+                                            <form method="POST" action="{{ url_for('treatment_delete', treatment_id=treat.id) }}" onsubmit="return confirm('حذف هذا العمل التركيبي نهائياً ؟');" class="inline">
+                                                <input type="hidden" name="client_id" value="{{ client.id }}">
+                                                <button type="submit" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="حذف العمل">
+                                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -226,14 +249,15 @@
                 {% endif %}
             </div>
 
-            <!-- قسم المواعيد والزيارات السريرية -->
-            <div class="card-soft p-5 bg-white">
+            <!-- 2. قسم المواعيد والزيارات السريرية -->
+            <div class="card-soft p-5 bg-white border border-slate-200">
                 <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                     <div class="flex items-center space-x-2 space-x-reverse">
                         <i class="fa-solid fa-calendar-check text-sky-600 text-lg"></i>
                         <h2 class="text-base font-bold text-slate-900">سجل الجلسات والمواعيد</h2>
+                        <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">{{ appointments | length }}</span>
                     </div>
-                    <button onclick="openModal('modal-add-appointment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition">
+                    <button onclick="openModal('modal-add-appointment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition active:scale-95">
                         <i class="fa-solid fa-calendar-plus ml-1"></i> حجز جلسة
                     </button>
                 </div>
@@ -241,10 +265,10 @@
                 {% if appointments %}
                     <div class="divide-y divide-slate-100 text-xs">
                         {% for appt in appointments %}
-                            <div class="py-3 flex items-start justify-between gap-3">
+                            <div class="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div>
                                     <div class="flex items-center space-x-2 space-x-reverse">
-                                        <span class="font-black text-slate-800 text-sm">{{ appt.appointment_date }} في تمام {{ appt.start_time }}</span>
+                                        <span class="font-black text-slate-800 text-sm font-mono">{{ appt.appointment_date }} في {{ appt.start_time }}</span>
                                         <span class="text-slate-400 font-bold">({{ appt.duration_minutes }} دقيقة)</span>
                                     </div>
                                     <p class="font-bold text-brand-700 mt-1"><i class="fa-solid fa-stethoscope ml-1 text-slate-400"></i>{{ appt.act_type }}</p>
@@ -252,7 +276,7 @@
                                         <p class="text-slate-500 text-[11px] mt-0.5 italic">{{ appt.notes }}</p>
                                     {% endif %}
                                 </div>
-                                <div class="flex items-center space-x-2 space-x-reverse">
+                                <div class="flex items-center space-x-2 space-x-reverse self-end sm:self-auto">
                                     <span class="px-2 py-0.5 rounded-full font-bold text-[10px]
                                         {% if appt.status == 'termine' %}bg-emerald-100 text-emerald-800
                                         {% elif appt.status == 'confirme' %}bg-sky-100 text-sky-800
@@ -264,7 +288,7 @@
                                         {% elif appt.status == 'annule' %}ملغى
                                         {% else %}{{ appt.status }}{% endif %}
                                     </span>
-                                    <!-- زر التحديد كمكتمل بنقرة واحدة -->
+                                    <!-- تحديد كمكتمل -->
                                     <form method="POST" action="{{ url_for('appointment_update_status', appointment_id=appt.id) }}" class="inline">
                                         <input type="hidden" name="client_id" value="{{ client.id }}">
                                         <input type="hidden" name="redirect_to" value="client">
@@ -275,9 +299,18 @@
                                             </button>
                                         {% endif %}
                                     </form>
+                                    <!-- تعديل ✏️ -->
+                                    <button onclick="openModal('modal-edit-appointment-{{ appt.id }}')" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="تعديل الموعد">
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </button>
+                                    <!-- تكرار 📑 -->
+                                    <a href="{{ url_for('appointment_duplicate', appointment_id=appt.id, redirect_to='client') }}" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="تكرار الموعد">
+                                        <i class="fa-solid fa-copy text-xs"></i>
+                                    </a>
+                                    <!-- حذف 🗑️ -->
                                     <form method="POST" action="{{ url_for('appointment_delete', appointment_id=appt.id) }}" onsubmit="return confirm('حذف هذا الموعد ؟');" class="inline">
                                         <input type="hidden" name="client_id" value="{{ client.id }}">
-                                        <button type="submit" class="p-1 text-slate-400 hover:text-rose-600" title="حذف">
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600" title="حذف">
                                             <i class="fa-solid fa-trash-can text-xs"></i>
                                         </button>
                                     </form>
@@ -287,7 +320,81 @@
                     </div>
                 {% else %}
                     <div class="text-center py-6 text-slate-400">
-                        <p class="text-xs font-bold">لا توجد مواعيد مبرمجة حالياً.</p>
+                        <p class="text-xs font-bold">لا توجد مواعيد مبرمجة حالياً لهذا المريض.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- 3. قسم الفواتير والمقايسات (NEW Invoices Module for Patient) -->
+            <div class="card-soft p-5 bg-white border border-slate-200">
+                <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <i class="fa-solid fa-file-invoice-dollar text-indigo-600 text-lg"></i>
+                        <h2 class="text-base font-bold text-slate-900">فواتير ومقايسات المريض (Factures & Devis)</h2>
+                        <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">{{ invoices | length }}</span>
+                    </div>
+                    <a href="{{ url_for('invoice_create', client_id=client.id) }}" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 transition active:scale-95">
+                        <i class="fa-solid fa-plus ml-1"></i> إنشاء فاتورة / مقايسة
+                    </a>
+                </div>
+
+                {% if invoices %}
+                    <div class="space-y-3">
+                        {% for inv in invoices %}
+                            <div class="p-3.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 transition shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="font-black text-brand-700 font-mono text-sm hover:underline">
+                                            {{ inv.invoice_number }}
+                                        </a>
+                                        <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if inv.type == 'devis' %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+                                            {{ "مقايسة (Devis)" if inv.type == 'devis' else "فاتورة" }}
+                                        </span>
+                                        <span class="font-mono text-slate-400 text-[11px]">{{ inv.date }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 mt-1.5 font-mono text-slate-700">
+                                        <span>الإجمالي: <strong>{{ inv.total_amount }} {{ cabinet_currency }}</strong></span>
+                                        <span>المسدد: <strong class="text-emerald-600">{{ inv.paid_amount }} {{ cabinet_currency }}</strong></span>
+                                        {% if inv.remaining_amount > 0 %}
+                                            <span class="text-amber-600 font-bold">باقي: {{ inv.remaining_amount }} {{ cabinet_currency }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="flex items-center gap-1.5 self-end sm:self-auto">
+                                    <!-- عرض -->
+                                    <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition" title="عرض">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                    <!-- تعديل ✏️ -->
+                                    <a href="{{ url_for('invoice_edit', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="تعديل">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </a>
+                                    <!-- تكرار 📑 -->
+                                    <a href="{{ url_for('invoice_duplicate', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="تكرار">
+                                        <i class="fa-solid fa-copy"></i>
+                                    </a>
+                                    <!-- طباعة 🖨️ -->
+                                    <a href="{{ url_for('invoice_print', invoice_id=inv.id) }}" target="_blank" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="طباعة">
+                                        <i class="fa-solid fa-print"></i>
+                                    </a>
+                                    <!-- حذف 🗑️ -->
+                                    <form method="POST" action="{{ url_for('invoice_delete', invoice_id=inv.id) }}" onsubmit="return confirm('حذف هذه الفاتورة نهائياً ؟');" class="inline">
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600" title="حذف">
+                                            <i class="fa-solid fa-trash-can"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6 text-slate-400">
+                        <i class="fa-solid fa-receipt text-2xl mb-1 text-slate-300"></i>
+                        <p class="text-xs font-bold">لا توجد فواتير أو مقايسات مسجلة لهذا المريض.</p>
+                        <a href="{{ url_for('invoice_create', client_id=client.id) }}" class="mt-1 inline-block text-xs font-black text-brand-600 hover:underline">
+                            + إنشاء أول فاتورة
+                        </a>
                     </div>
                 {% endif %}
             </div>
@@ -298,13 +405,14 @@
         <div class="lg:col-span-5 space-y-6">
 
             <!-- سجل الدفعات والمقبوضات -->
-            <div class="card-soft p-5 bg-white">
+            <div class="card-soft p-5 bg-white border border-slate-200">
                 <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
                     <div class="flex items-center space-x-2 space-x-reverse">
-                        <i class="fa-solid fa-file-invoice-dollar text-emerald-600 text-lg"></i>
+                        <i class="fa-solid fa-wallet text-emerald-600 text-lg"></i>
                         <h2 class="text-base font-bold text-slate-900">سجل الدفعات والمقبوضات</h2>
+                        <span class="text-xs bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full font-mono">{{ payments | length }}</span>
                     </div>
-                    <button onclick="openModal('modal-add-payment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition">
+                    <button onclick="openModal('modal-add-payment')" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition active:scale-95">
                         <i class="fa-solid fa-plus ml-1"></i> تسجيل دفعة
                     </button>
                 </div>
@@ -318,8 +426,8 @@
                                         <span class="font-black text-sm text-emerald-600 font-mono">+{{ pay.amount }} {{ cabinet_currency }}</span>
                                         <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[10px] font-bold">
                                             {% if pay.payment_method == 'especes' %}نقداً
-                                            {% elif pay.payment_method == 'carte' %}بطاقة بنكية
-                                            {% elif pay.payment_method == 'virement' %}تحويل بنكي
+                                            {% elif pay.payment_method == 'carte' %}بطاقة
+                                            {% elif pay.payment_method == 'virement' %}تحويل
                                             {% elif pay.payment_method == 'cheque' %}شيك
                                             {% else %}{{ pay.payment_method }}{% endif %}
                                         </span>
@@ -327,25 +435,40 @@
                                     <div class="text-[11px] text-slate-400 mt-1 font-mono">
                                         <span>التاريخ: {{ pay.payment_date }}</span>
                                         {% if pay.next_payment_date %}
-                                            <span class="mr-2 font-bold text-slate-600">• الدفعة القادمة: {{ pay.next_payment_date }}</span>
+                                            <span class="mr-2 font-bold text-slate-600">• القادمة: {{ pay.next_payment_date }}</span>
                                         {% endif %}
                                     </div>
                                     {% if pay.notes %}
                                         <p class="text-slate-500 text-[11px] mt-0.5 italic">{{ pay.notes }}</p>
                                     {% endif %}
                                 </div>
-                                <form method="POST" action="{{ url_for('payment_delete', payment_id=pay.id) }}" onsubmit="return confirm('حذف سجل هذا الدفع ؟');">
-                                    <input type="hidden" name="client_id" value="{{ client.id }}">
-                                    <button type="submit" class="text-slate-400 hover:text-rose-500 p-1">
-                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                <div class="flex items-center gap-1">
+                                    <!-- طباعة وصل 🖨️ -->
+                                    <a href="{{ url_for('payment_print', payment_id=pay.id) }}" target="_blank" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="طباعة وصل أداء">
+                                        <i class="fa-solid fa-print text-xs"></i>
+                                    </a>
+                                    <!-- تعديل ✏️ -->
+                                    <button onclick="openModal('modal-edit-payment-{{ pay.id }}')" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="تعديل الدفعة">
+                                        <i class="fa-solid fa-pen text-xs"></i>
                                     </button>
-                                </form>
+                                    <!-- تكرار 📑 -->
+                                    <a href="{{ url_for('payment_duplicate', payment_id=pay.id, redirect_to='client') }}" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="تكرار الدفعة">
+                                        <i class="fa-solid fa-copy text-xs"></i>
+                                    </a>
+                                    <!-- حذف 🗑️ -->
+                                    <form method="POST" action="{{ url_for('payment_delete', payment_id=pay.id) }}" onsubmit="return confirm('حذف سجل هذا الدفع ؟');" class="inline">
+                                        <input type="hidden" name="client_id" value="{{ client.id }}">
+                                        <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-500" title="حذف">
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         {% endfor %}
                     </div>
                 {% else %}
                     <div class="text-center py-6 text-slate-400">
-                        <p class="text-xs font-bold">لم يتم تسجيل أي دفعة بعد.</p>
+                        <p class="text-xs font-bold">لم يتم تسجيل أي دفعة بعد لهذا المريض.</p>
                     </div>
                 {% endif %}
             </div>
@@ -384,15 +507,15 @@
 </div>
 
 <!-- ============================================================================== -->
-<!-- النوافذ المنبثقة البسيطة (إضافة تركيبة، حجز موعد، تسجيل دفعة) -->
+<!-- النوافذ المنبثقة البسيطة (إضافة وتعديل التركيبات، الجلسات، والدفعات) -->
 <!-- ============================================================================== -->
 
 <!-- 1. نافذة إضافة تركيبة سنية -->
-<div id="modal-add-treatment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+<div id="modal-add-treatment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-black text-base text-slate-900">إضافة تركيبة / عمل مختبر جديد</h3>
-            <button onclick="closeModal('modal-add-treatment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <button onclick="closeModal('modal-add-treatment')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
         <form method="POST" action="{{ url_for('treatment_add') }}" class="space-y-3">
             <input type="hidden" name="client_id" value="{{ client.id }}">
@@ -445,12 +568,72 @@
     </div>
 </div>
 
-<!-- 2. نافذة حجز موعد جديد للمريض -->
-<div id="modal-add-appointment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+<!-- 2. نوافذ تعديل التركيبات السنية (Edit Treatment Modals) -->
+{% for treat in treatments %}
+<div id="modal-edit-treatment-{{ treat.id }}" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-black text-base text-slate-900"><i class="fa-solid fa-pen ml-1.5 text-sky-600"></i> تعديل التركيبة السنية</h3>
+            <button onclick="closeModal('modal-edit-treatment-{{ treat.id }}')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('treatment_edit', treatment_id=treat.id) }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">اسم ونوع التركيبة *</label>
+                <input type="text" name="title" required value="{{ treat.title }}"
+                       class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">رقم السن / الأسنان</label>
+                    <input type="text" name="teeth_numbers" value="{{ treat.teeth_numbers or '' }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">درجة اللون (Teinte)</label>
+                    <input type="text" name="shade" value="{{ treat.shade or '' }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">تكلفة العمل ({{ cabinet_currency }}) *</label>
+                    <input type="number" step="0.01" name="total_cost" required value="{{ treat.total_cost }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-black text-slate-800 font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">تاريخ التسليم المتوقع</label>
+                    <input type="date" name="delivery_date" value="{{ treat.delivery_date or '' }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">مرحلة الإنجاز</label>
+                <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold">
+                    {% for st_key, st_info in status_labels.items() %}
+                        <option value="{{ st_key }}" {% if treat.status == st_key %}selected{% endif %}>{{ st_info.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ملاحظات للمختبر أو الطبيب</label>
+                <textarea name="notes" rows="2" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none">{{ treat.notes or '' }}</textarea>
+            </div>
+            <div class="flex justify-end space-x-2 space-x-reverse pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-edit-treatment-{{ treat.id }}')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">إلغاء</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-sky-600 rounded-lg shadow-sm">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 3. نافذة حجز موعد جديد للمريض -->
+<div id="modal-add-appointment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-black text-base text-slate-900">حجز موعد جديد للمريض: {{ client.first_name }}</h3>
-            <button onclick="closeModal('modal-add-appointment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <button onclick="closeModal('modal-add-appointment')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
         <form method="POST" action="{{ url_for('appointment_add') }}" class="space-y-3">
             <input type="hidden" name="client_id" value="{{ client.id }}">
@@ -505,12 +688,76 @@
     </div>
 </div>
 
-<!-- 3. نافذة تسجيل دفعة مالية -->
-<div id="modal-add-payment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+<!-- 4. نوافذ تعديل المواعيد (Edit Appointment Modals) -->
+{% for appt in appointments %}
+<div id="modal-edit-appointment-{{ appt.id }}" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-black text-base text-slate-900"><i class="fa-solid fa-pen ml-1.5 text-sky-600"></i> تعديل الموعد والجلسة</h3>
+            <button onclick="closeModal('modal-edit-appointment-{{ appt.id }}')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('appointment_edit', appointment_id=appt.id) }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <input type="hidden" name="redirect_to" value="client">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">تاريخ الموعد *</label>
+                    <input type="date" name="appointment_date" required value="{{ appt.appointment_date }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">وقت الموعد *</label>
+                    <input type="time" name="start_time" required value="{{ appt.start_time }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">مدة الجلسة</label>
+                    <select name="duration_minutes" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold">
+                        <option value="15" {% if appt.duration_minutes == 15 %}selected{% endif %}>15 دقيقة</option>
+                        <option value="30" {% if appt.duration_minutes == 30 %}selected{% endif %}>30 دقيقة</option>
+                        <option value="45" {% if appt.duration_minutes == 45 %}selected{% endif %}>45 دقيقة</option>
+                        <option value="60" {% if appt.duration_minutes == 60 %}selected{% endif %}>60 دقيقة</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">حالة الموعد</label>
+                    <select name="status" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold">
+                        <option value="planifie" {% if appt.status == 'planifie' %}selected{% endif %}>محدد</option>
+                        <option value="confirme" {% if appt.status == 'confirme' %}selected{% endif %}>مؤكد</option>
+                        <option value="termine" {% if appt.status == 'termine' %}selected{% endif %}>مكتمل</option>
+                        <option value="annule" {% if appt.status == 'annule' %}selected{% endif %}>ملغى</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">نوع العلاج *</label>
+                <select name="act_type" required class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold text-slate-800">
+                    {% for act in dental_acts %}
+                        <option value="{{ act }}" {% if appt.act_type == act %}selected{% endif %}>{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ملاحظات</label>
+                <textarea name="notes" rows="2" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none">{{ appt.notes or '' }}</textarea>
+            </div>
+            <div class="flex justify-end space-x-2 space-x-reverse pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-edit-appointment-{{ appt.id }}')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">إلغاء</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-sky-600 rounded-lg shadow-sm">حفظ التعديل</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+<!-- 5. نافذة تسجيل دفعة مالية جديدة -->
+<div id="modal-add-payment" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100">
             <h3 class="font-black text-base text-slate-900">تسجيل دفعة / تسبيق للمريض</h3>
-            <button onclick="closeModal('modal-add-payment')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <button onclick="closeModal('modal-add-payment')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
         </div>
         <form method="POST" action="{{ url_for('payment_add') }}" class="space-y-3">
             <input type="hidden" name="client_id" value="{{ client.id }}">
@@ -567,5 +814,57 @@
         </form>
     </div>
 </div>
+
+<!-- 6. نوافذ تعديل الدفعات (Edit Payment Modals) -->
+{% for pay in payments %}
+<div id="modal-edit-payment-{{ pay.id }}" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden items-center justify-center p-3 sm:p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h3 class="font-black text-base text-slate-900"><i class="fa-solid fa-pen ml-1.5 text-sky-600"></i> تعديل بيانات الدفعة</h3>
+            <button onclick="closeModal('modal-edit-payment-{{ pay.id }}')" class="text-slate-400 hover:text-slate-600 p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+        </div>
+        <form method="POST" action="{{ url_for('payment_edit', payment_id=pay.id) }}" class="space-y-3">
+            <input type="hidden" name="client_id" value="{{ client.id }}">
+            <input type="hidden" name="redirect_to" value="client">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">المبلغ ({{ cabinet_currency }}) *</label>
+                    <input type="number" step="0.01" name="amount" required value="{{ pay.amount }}"
+                           class="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none font-black text-emerald-600 font-mono">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">تاريخ الدفعة *</label>
+                    <input type="date" name="payment_date" required value="{{ pay.payment_date }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">طريقة الدفع</label>
+                    <select name="payment_method" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-bold">
+                        <option value="especes" {% if pay.payment_method == 'especes' %}selected{% endif %}>نقداً</option>
+                        <option value="carte" {% if pay.payment_method == 'carte' %}selected{% endif %}>بطاقة بنكية</option>
+                        <option value="virement" {% if pay.payment_method == 'virement' %}selected{% endif %}>تحويل بنكي</option>
+                        <option value="cheque" {% if pay.payment_method == 'cheque' %}selected{% endif %}>شيك</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">تاريخ الدفعة القادمة</label>
+                    <input type="date" name="next_payment_date" value="{{ pay.next_payment_date or '' }}"
+                           class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 outline-none font-mono">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">ملاحظات</label>
+                <input type="text" name="notes" value="{{ pay.notes or '' }}" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg outline-none">
+            </div>
+            <div class="flex justify-end space-x-2 space-x-reverse pt-3 border-t border-slate-100">
+                <button type="button" onclick="closeModal('modal-edit-payment-{{ pay.id }}')" class="px-3.5 py-1.5 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">إلغاء</button>
+                <button type="submit" class="px-4 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg shadow-sm">حفظ التعديل</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
 
 {% endblock %}
