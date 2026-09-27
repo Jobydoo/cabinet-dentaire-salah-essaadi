@@ -27,6 +27,9 @@
         </div>
 
         <form method="POST">
+            <!-- الاحتفاظ بالبريد الإلكتروني الحالي إن وجد بدون إظهاره -->
+            <input type="hidden" name="email" value="{{ client.email or '' }}">
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <!-- الاسم الشخصي -->
                 <div>
@@ -43,17 +46,45 @@
                 </div>
 
                 <!-- الهاتف -->
-                <div>
+                <div class="sm:col-span-2">
                     <label class="block text-xs font-bold text-slate-700 uppercase mb-1">رقم الهاتف <span class="text-rose-500">*</span></label>
                     <input type="tel" name="phone" required value="{{ client.phone or '' }}" placeholder="مثال: 0661234567" dir="ltr"
                            class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition text-right font-mono">
                 </div>
 
-                <!-- البريد الإلكتروني -->
+                <!-- الدفع -->
                 <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">البريد الإلكتروني (اختياري)</label>
-                    <input type="email" name="email" value="{{ client.email or '' }}" placeholder="patient@example.com" dir="ltr"
-                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition text-right font-mono">
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center justify-between">
+                        <span><i class="fa-solid fa-money-bill-wave ml-1 text-emerald-600"></i> الدفع ({{ cabinet_currency }})</span>
+                        <span class="text-[10px] text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded font-bold">المبلغ المسدد</span>
+                    </label>
+                    <input type="number" step="any" min="0" name="paid_amount" id="paid_amount"
+                           value="{{ client.paid_amount if client.paid_amount is defined else (client.total_paid if (client.total_paid is defined and client.total_paid is not none and client.total_paid > 0) else '') }}"
+                           placeholder="0.00" dir="ltr"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition text-right font-mono font-bold text-emerald-600">
+                </div>
+
+                <!-- الباقي -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1 flex items-center justify-between">
+                        <span><i class="fa-solid fa-hand-holding-dollar ml-1 text-amber-600"></i> الباقي ({{ cabinet_currency }})</span>
+                        <span class="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded font-bold">المتبقي في الذمة</span>
+                    </label>
+                    <input type="number" step="any" min="0" name="remaining_amount" id="remaining_amount"
+                           value="{{ client.remaining_amount if client.remaining_amount is defined else (client.remaining_balance if (client.remaining_balance is defined and client.remaining_balance is not none and client.remaining_balance > 0) else '') }}"
+                           placeholder="0.00" dir="ltr"
+                           class="w-full px-3.5 py-2 text-sm bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-100 outline-none transition text-right font-mono font-bold text-amber-600">
+                </div>
+
+                <!-- شريط الحساب التلقائي للإجمالي -->
+                <div id="total_cost_box" class="sm:col-span-2 p-3 bg-gradient-to-r from-slate-50 to-brand-50/30 border border-slate-200/90 rounded-xl flex items-center justify-between transition-all">
+                    <div class="flex items-center space-x-2 space-x-reverse text-xs text-slate-600">
+                        <i class="fa-solid fa-calculator text-brand-600 text-sm"></i>
+                        <span class="font-bold">إجمالي تكلفة العلاج التقديرية:</span>
+                    </div>
+                    <div class="text-sm font-black text-brand-700 font-mono">
+                        <span id="total_calc_val">0.00</span> {{ cabinet_currency }}
+                    </div>
                 </div>
 
                 <!-- العنوان -->
@@ -84,4 +115,30 @@
     </div>
 
 </div>
+
+<script>
+    function updateTotalCost() {
+        const paidInput = document.getElementById('paid_amount');
+        const remainingInput = document.getElementById('remaining_amount');
+        const totalVal = document.getElementById('total_calc_val');
+
+        const paid = parseFloat(paidInput ? paidInput.value : 0) || 0;
+        const remaining = parseFloat(remainingInput ? remainingInput.value : 0) || 0;
+        const total = paid + remaining;
+
+        if (totalVal) {
+            totalVal.textContent = total.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const paidInput = document.getElementById('paid_amount');
+        const remainingInput = document.getElementById('remaining_amount');
+
+        if (paidInput) paidInput.addEventListener('input', updateTotalCost);
+        if (remainingInput) remainingInput.addEventListener('input', updateTotalCost);
+
+        updateTotalCost();
+    });
+</script>
 {% endblock %}
