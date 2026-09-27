@@ -1,0 +1,291 @@
+{% extends "base.html" %}
+
+{% block title %}{% if is_edit %}تعديل الفاتورة {{ invoice.invoice_number }}{% else %}إنشاء فاتورة أو مقايسة جديدة{% endif %} - {{ cabinet_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- مسار التنقل -->
+    <div class="flex items-center space-x-2 space-x-reverse text-xs text-slate-500">
+        <a href="{{ url_for('invoices_list') }}" class="hover:text-brand-600 font-bold">الفواتير والمقايسات</a>
+        <span>/</span>
+        <span class="text-slate-800 font-black">{% if is_edit %}تعديل {{ invoice.invoice_number }}{% else %}وثيقة جديدة{% endif %}</span>
+    </div>
+
+    <!-- بطاقة النموذج -->
+    <div class="card-soft p-5 sm:p-8 bg-white border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-5 border-b border-slate-100 gap-3">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-900">
+                    {% if is_edit %}تعديل الفاتورة / المقايسة{% else %}إنشاء فاتورة أو مقايسة أسعار جديدة{% endif %}
+                </h1>
+                <p class="text-xs text-slate-500 mt-1">تحديد المريض، بنود العلاج، الأسعار والدفعات المسددة.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-400">العملة: {{ cabinet_currency }}</span>
+            </div>
+        </div>
+
+        <form method="POST" id="invoice-form" class="mt-6 space-y-6">
+            <!-- الصف الأول: اختيار المريض ونوع الوثيقة -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <!-- اختيار المريض -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">المريض <span class="text-rose-500">*</span></label>
+                    <select name="client_id" id="client_select" required class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none">
+                        <option value="">-- اختر مريضاً من القائمة --</option>
+                        {% for c in clients %}
+                            <option value="{{ c.id }}" {% if (selected_client and selected_client.id == c.id) or (is_edit and invoice.client_id == c.id) %}selected{% endif %}>
+                                {{ c.first_name }} {{ c.last_name }} ({{ c.phone }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- نوع الوثيقة -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">نوع الوثيقة <span class="text-rose-500">*</span></label>
+                    <select name="type" required class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold text-slate-800 focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none">
+                        <option value="facture" {% if is_edit and invoice.type == 'facture' %}selected{% endif %}>فاتورة رسمية (Facture)</option>
+                        <option value="devis" {% if (is_edit and invoice.type == 'devis') or (request.args.get('type') == 'devis') %}selected{% endif %}>مقايسة أسعار (Devis)</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثاني: التواريخ والحالة -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <!-- تاريخ الفاتورة -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">تاريخ الإصدار</label>
+                    <input type="date" name="date" value="{{ invoice.date if is_edit else current_date }}" required
+                           class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-slate-800 focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+
+                <!-- تاريخ الاستحقاق -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">تاريخ الاستحقاق (اختياري)</label>
+                    <input type="date" name="due_date" value="{{ invoice.due_date if is_edit else '' }}"
+                           class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-mono text-slate-800 focus:bg-white focus:border-brand-500 outline-none">
+                </div>
+
+                <!-- حالة السداد -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">حالة السداد</label>
+                    <select name="status" id="status_select" class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 font-bold text-slate-800 focus:bg-white focus:border-brand-500 outline-none">
+                        <option value="non_payee" {% if is_edit and invoice.status == 'non_payee' %}selected{% endif %}>في انتظار السداد (غير مدفوعة)</option>
+                        <option value="partielle" {% if is_edit and invoice.status == 'partielle' %}selected{% endif %}>مسددة جزئياً</option>
+                        <option value="payee" {% if is_edit and invoice.status == 'payee' %}selected{% endif %}>مدفوعة بالكامل</option>
+                        <option value="annulee" {% if is_edit and invoice.status == 'annulee' %}selected{% endif %}>ملغاة</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- جدول بنود العلاج والخدمات -->
+            <div class="pt-4 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-3">
+                    <label class="text-sm font-black text-slate-800">بنود العلاج والخدمات السريرية</label>
+                    <button type="button" onclick="addItemRow()" class="inline-flex items-center px-3 py-1.5 text-xs font-bold rounded-lg bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 transition">
+                        <i class="fa-solid fa-plus ml-1"></i> إضافة بند علاج
+                    </button>
+                </div>
+
+                <div class="space-y-2.5" id="items-container">
+                    {% if is_edit and invoice['items'] %}
+                        {% for item in invoice['items'] %}
+                            <div class="item-row flex flex-col sm:flex-row items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                                <div class="w-full sm:flex-1">
+                                    <input type="text" name="item_description[]" value="{{ item.description }}" placeholder="بيان العلاج أو نوع التركيبة السنية..." required
+                                           class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-brand-500 outline-none">
+                                </div>
+                                <div class="flex items-center gap-2 w-full sm:w-auto">
+                                    <div class="w-20">
+                                        <input type="number" name="item_quantity[]" value="{{ item.quantity }}" min="1" step="1" oninput="calculateTotals()" placeholder="الكمية" required
+                                               class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                                    </div>
+                                    <div class="w-28">
+                                        <input type="number" name="item_unit_price[]" value="{{ item.unit_price }}" min="0" step="any" oninput="calculateTotals()" placeholder="السعر الفردي" required
+                                               class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                                    </div>
+                                    <div class="w-24 text-center font-mono font-bold text-xs text-slate-700 line-total">
+                                        {{ item.total }} {{ cabinet_currency }}
+                                    </div>
+                                    <button type="button" onclick="removeItemRow(this)" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition" title="حذف البند">
+                                        <i class="fa-solid fa-trash-can text-xs"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- بند أولي افتراضي -->
+                        <div class="item-row flex flex-col sm:flex-row items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                            <div class="w-full sm:flex-1">
+                                <input type="text" name="item_description[]" value="استشارة وفحص سريري مع خطة علاج الأسنان" placeholder="بيان العلاج أو نوع التركيبة السنية..." required
+                                       class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-brand-500 outline-none">
+                            </div>
+                            <div class="flex items-center gap-2 w-full sm:w-auto">
+                                <div class="w-20">
+                                    <input type="number" name="item_quantity[]" value="1" min="1" step="1" oninput="calculateTotals()" placeholder="الكمية" required
+                                           class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                                </div>
+                                <div class="w-28">
+                                    <input type="number" name="item_unit_price[]" value="300" min="0" step="any" oninput="calculateTotals()" placeholder="السعر الفردي" required
+                                           class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                                </div>
+                                <div class="w-24 text-center font-mono font-bold text-xs text-slate-700 line-total">
+                                    300 {{ cabinet_currency }}
+                                </div>
+                                <button type="button" onclick="removeItemRow(this)" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition" title="حذف البند">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- ملخص الحساب والإجماليات -->
+            <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row justify-end">
+                <div class="w-full sm:w-80 space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span class="font-bold">المجموع قبل الخصم:</span>
+                        <span id="subtotal-display" class="font-mono font-black text-sm">0.00 {{ cabinet_currency }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center text-slate-600">
+                        <span class="font-bold">قيمة الخصم / التخفيض:</span>
+                        <div class="w-28">
+                            <input type="number" name="discount" id="discount-input" value="{{ invoice.discount if is_edit else '0' }}" min="0" step="any" oninput="calculateTotals()"
+                                   class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-center font-mono text-slate-800 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-slate-900 border-t border-slate-200 pt-2 font-black text-sm">
+                        <span>الصافي الإجمالي:</span>
+                        <span id="total-display" class="font-mono text-brand-700">0.00 {{ cabinet_currency }}</span>
+                    </div>
+
+                    <div class="flex justify-between items-center text-slate-600 pt-1">
+                        <span class="font-bold text-emerald-700">المبلغ المسدد:</span>
+                        <div class="w-28">
+                            <input type="number" name="paid_amount" id="paid-input" value="{{ invoice.paid_amount if is_edit else '0' }}" min="0" step="any" oninput="calculateTotals()"
+                                   class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2 py-1 text-center font-mono text-emerald-700 font-bold outline-none">
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center text-slate-700 border-t border-slate-200 pt-2 font-black">
+                        <span class="text-amber-700">الباقي غير المسدد:</span>
+                        <span id="remaining-display" class="font-mono text-amber-700">0.00 {{ cabinet_currency }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ملاحظات وشروط الفاتورة -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5">ملاحظات وشروط الدفع</label>
+                <textarea name="notes" rows="2" placeholder="ملاحظات تظهر على الفاتورة، طريقة السداد، ضمان التركيبة..."
+                          class="w-full text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl p-3 text-slate-800 focus:bg-white focus:border-brand-500 outline-none">{{ invoice.notes if is_edit else '' }}</textarea>
+            </div>
+
+            <!-- أزرار الحفظ والإلغاء -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                <a href="{{ url_for('invoices_list') }}" class="px-5 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 transition">
+                    إلغاء
+                </a>
+                <button type="submit" class="px-6 py-2.5 rounded-xl text-xs sm:text-sm font-black text-white bg-brand-600 hover:bg-brand-700 shadow-md shadow-brand-500/20 transition active:scale-95">
+                    <i class="fa-solid fa-check ml-1.5"></i> {% if is_edit %}تحديث الفاتورة{% else %}حفظ وإصدار الفاتورة{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function addItemRow() {
+        var container = document.getElementById('items-container');
+        var row = document.createElement('div');
+        row.className = 'item-row flex flex-col sm:flex-row items-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200';
+        row.innerHTML = `
+            <div class="w-full sm:flex-1">
+                <input type="text" name="item_description[]" placeholder="بيان العلاج أو نوع التركيبة السنية..." required
+                       class="w-full text-xs bg-white border border-slate-200 rounded-lg px-3 py-2 text-slate-800 focus:border-brand-500 outline-none">
+            </div>
+            <div class="flex items-center gap-2 w-full sm:w-auto">
+                <div class="w-20">
+                    <input type="number" name="item_quantity[]" value="1" min="1" step="1" oninput="calculateTotals()" placeholder="الكمية" required
+                           class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                </div>
+                <div class="w-28">
+                    <input type="number" name="item_unit_price[]" value="0" min="0" step="any" oninput="calculateTotals()" placeholder="السعر الفردي" required
+                           class="w-full text-xs bg-white border border-slate-200 rounded-lg px-2.5 py-2 text-center font-mono text-slate-800 outline-none">
+                </div>
+                <div class="w-24 text-center font-mono font-bold text-xs text-slate-700 line-total">
+                    0.00 {{ cabinet_currency }}
+                </div>
+                <button type="button" onclick="removeItemRow(this)" class="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition" title="حذف البند">
+                    <i class="fa-solid fa-trash-can text-xs"></i>
+                </button>
+            </div>
+        `;
+        container.appendChild(row);
+        calculateTotals();
+    }
+
+    function removeItemRow(btn) {
+        var container = document.getElementById('items-container');
+        if (container.getElementsByClassName('item-row').length > 1) {
+            btn.closest('.item-row').remove();
+            calculateTotals();
+        } else {
+            alert('يجب أن تحتوي الفاتورة على بند واحد على الأقل.');
+        }
+    }
+
+    function calculateTotals() {
+        var rows = document.getElementsByClassName('item-row');
+        var subtotal = 0;
+
+        for (var i = 0; i < rows.length; i++) {
+            var qtyInput = rows[i].querySelector('input[name="item_quantity[]"]');
+            var priceInput = rows[i].querySelector('input[name="item_unit_price[]"]');
+            var lineDisplay = rows[i].querySelector('.line-total');
+
+            var qty = parseFloat(qtyInput.value) || 0;
+            var price = parseFloat(priceInput.value) || 0;
+            var lineTotal = qty * price;
+            subtotal += lineTotal;
+
+            if (lineDisplay) {
+                lineDisplay.innerText = lineTotal.toFixed(2) + ' {{ cabinet_currency }}';
+            }
+        }
+
+        var discountInput = document.getElementById('discount-input');
+        var discount = parseFloat(discountInput.value) || 0;
+        var netTotal = Math.max(0, subtotal - discount);
+
+        var paidInput = document.getElementById('paid-input');
+        var paid = parseFloat(paidInput.value) || 0;
+        var remaining = Math.max(0, netTotal - paid);
+
+        document.getElementById('subtotal-display').innerText = subtotal.toFixed(2) + ' {{ cabinet_currency }}';
+        document.getElementById('total-display').innerText = netTotal.toFixed(2) + ' {{ cabinet_currency }}';
+        document.getElementById('remaining-display').innerText = remaining.toFixed(2) + ' {{ cabinet_currency }}';
+
+        // تحديث خيار الحالة تلقائياً إذا رغب المستخدم
+        var statusSelect = document.getElementById('status_select');
+        if (statusSelect && !statusSelect.dataset.manual) {
+            if (paid >= netTotal && netTotal > 0) {
+                statusSelect.value = 'payee';
+            } else if (paid > 0) {
+                statusSelect.value = 'partielle';
+            } else {
+                statusSelect.value = 'non_payee';
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        calculateTotals();
+    });
+</script>
+{% endblock %}

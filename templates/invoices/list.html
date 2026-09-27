@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}الفواتير والمقايسات - {{ cabinet_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- الترويسة وأزرار الإجراءات -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">إدارة الفواتير والمقايسات (Devis & Factures)</h1>
+            <p class="text-xs sm:text-sm text-slate-500 mt-1">إنشاء فواتير رسمية ومقايسات الأسعار، متابعة المدفوعات والطباعة بضغطة زر.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="{{ url_for('invoice_create') }}" class="inline-flex items-center px-4 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-plus-circle ml-1.5"></i> إنشاء فاتورة / مقايسة
+            </a>
+        </div>
+    </div>
+
+    <!-- مؤشرات الأداء السريعة (KPIs) -->
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- إجمالي المفوتر -->
+        <div class="card-soft p-4 bg-white flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-slate-500 block">إجمالي المفوتر (الفواتير الرسمية)</span>
+                <span class="text-xl sm:text-2xl font-black text-slate-900 mt-1 block font-mono">{{ total_invoiced }} {{ cabinet_currency }}</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-file-invoice"></i>
+            </div>
+        </div>
+
+        <!-- إجمالي المحصل -->
+        <div class="card-soft p-4 bg-white flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-emerald-600 block">المبالغ المحصلة</span>
+                <span class="text-xl sm:text-2xl font-black text-emerald-600 mt-1 block font-mono">{{ total_paid }} {{ cabinet_currency }}</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+        </div>
+
+        <!-- المتبقي في الذمة -->
+        <div class="card-soft p-4 bg-white flex items-center justify-between">
+            <div>
+                <span class="text-xs font-bold text-amber-600 block">المتبقي غير المحصل</span>
+                <span class="text-xl sm:text-2xl font-black text-amber-600 mt-1 block font-mono">{{ total_remaining }} {{ cabinet_currency }}</span>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-clock"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- شريط الفلترة والبحث -->
+    <div class="card-soft p-4 bg-white flex flex-col md:flex-row items-center justify-between gap-4">
+        <form method="GET" action="{{ url_for('invoices_list') }}" class="flex-1 w-full flex items-center gap-2">
+            <div class="relative flex-1">
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </div>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="ابحث برقم الفاتورة أو اسم المريض..."
+                       class="w-full pr-9 pl-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+            </div>
+            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+            {% if type_filter %}<input type="hidden" name="type" value="{{ type_filter }}">{% endif %}
+            <button type="submit" class="px-4 py-2 text-xs font-bold bg-slate-800 text-white rounded-lg hover:bg-slate-900 transition">بحث</button>
+            {% if search_query or status_filter or type_filter %}
+                <a href="{{ url_for('invoices_list') }}" class="px-3 py-2 text-xs font-bold text-slate-500 hover:text-slate-800">إعادة ضبط</a>
+            {% endif %}
+        </form>
+
+        <!-- تصنيفات النوع والحالة -->
+        <div class="flex items-center space-x-1 space-x-reverse bg-slate-100 p-1 rounded-lg text-xs font-bold text-slate-600 overflow-x-auto max-w-full">
+            <a href="{{ url_for('invoices_list', q=search_query) }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if not type_filter and not status_filter %}bg-white text-brand-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                الكل ({{ invoices | length }})
+            </a>
+            <a href="{{ url_for('invoices_list', q=search_query, type='facture') }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if type_filter == 'facture' %}bg-white text-brand-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                الفواتير
+            </a>
+            <a href="{{ url_for('invoices_list', q=search_query, type='devis') }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if type_filter == 'devis' %}bg-white text-indigo-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                المقايسات (Devis)
+            </a>
+            <a href="{{ url_for('invoices_list', q=search_query, status='non_payee') }}" class="px-3 py-1.5 rounded-md whitespace-nowrap transition {% if status_filter == 'non_payee' %}bg-white text-amber-700 shadow-sm{% else %}hover:text-slate-900{% endif %}">
+                غير مسددة
+            </a>
+        </div>
+    </div>
+
+    <!-- بطاقات العرض للأجهزة المحمولة (Mobile & Tablet Cards) -->
+    <div class="block md:hidden space-y-3">
+        {% if invoices %}
+            {% for inv in invoices %}
+                <div class="card-soft p-4 bg-white border border-slate-200 hover:border-brand-400 transition shadow-sm space-y-3">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="font-black text-sm text-brand-700 font-mono hover:underline">
+                                    {{ inv.invoice_number }}
+                                </a>
+                                <span class="px-2 py-0.5 rounded text-[10px] font-bold {% if inv.type == 'devis' %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+                                    {{ "مقايسة (Devis)" if inv.type == 'devis' else "فاتورة" }}
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 block mt-0.5 font-mono"><i class="fa-regular fa-calendar ml-1"></i>{{ inv.date }}</span>
+                        </div>
+                        <div>
+                            {% if inv.status == 'payee' %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">مدفوعة بالكامل</span>
+                            {% elif inv.status == 'partielle' %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">دفعة جزئية</span>
+                            {% elif inv.status == 'annulee' %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">ملغاة</span>
+                            {% else %}
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">في انتظار السداد</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- اسم المريض -->
+                    <div class="bg-slate-50 p-2.5 rounded-lg flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-2 space-x-reverse">
+                            <i class="fa-solid fa-user text-slate-400"></i>
+                            <a href="{{ url_for('client_view', client_id=inv.client_id) }}" class="font-bold text-slate-800 hover:text-brand-600">
+                                {{ inv.client_name }}
+                            </a>
+                        </div>
+                        <div class="text-slate-500 font-mono text-[11px]">
+                            {{ inv.client_phone }}
+                        </div>
+                    </div>
+
+                    <!-- الأرقام المالية -->
+                    <div class="grid grid-cols-3 gap-2 text-center text-xs py-1 border-t border-b border-slate-100 font-mono">
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">الإجمالي</span>
+                            <span class="font-black text-slate-800">{{ inv.total_amount }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">المدفوع</span>
+                            <span class="font-bold text-emerald-600">{{ inv.paid_amount }}</span>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-slate-400 block font-sans">الباقي</span>
+                            <span class="font-bold {% if inv.remaining_amount > 0 %}text-amber-600{% else %}text-slate-400{% endif %}">{{ inv.remaining_amount }}</span>
+                        </div>
+                    </div>
+
+                    <!-- أزرار الإجراءات السريعة (تعديل ✏️، تكرار 📑، طباعة 🖨️، حذف 🗑️) -->
+                    <div class="flex items-center justify-between pt-1">
+                        <div class="flex items-center gap-1.5">
+                            <!-- عرض -->
+                            <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="p-2 text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 rounded-lg transition" title="عرض التفاصيل">
+                                <i class="fa-solid fa-eye ml-1"></i> عرض
+                            </a>
+                            <!-- تعديل ✏️ -->
+                            <a href="{{ url_for('invoice_edit', invoice_id=inv.id) }}" class="p-2 text-xs font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 rounded-lg transition" title="تعديل">
+                                <i class="fa-solid fa-pen ml-1"></i> تعديل
+                            </a>
+                            <!-- تكرار 📑 -->
+                            <a href="{{ url_for('invoice_duplicate', invoice_id=inv.id) }}" class="p-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg transition" title="تكرار / نسخ">
+                                <i class="fa-solid fa-copy ml-1"></i> تكرار
+                            </a>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <!-- طباعة 🖨️ -->
+                            <a href="{{ url_for('invoice_print', invoice_id=inv.id) }}" target="_blank" class="p-2 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition" title="طباعة رسمية">
+                                <i class="fa-solid fa-print"></i>
+                            </a>
+                            <!-- حذف 🗑️ -->
+                            <form method="POST" action="{{ url_for('invoice_delete', invoice_id=inv.id) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذه الفاتورة ؟');" class="inline">
+                                <button type="submit" class="p-2 text-xs text-rose-500 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition" title="حذف">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <div class="card-soft p-8 bg-white text-center text-slate-400">
+                <i class="fa-solid fa-receipt text-3xl mb-2 text-slate-300"></i>
+                <p class="text-xs font-bold">لا توجد فواتير مطابقة للبحث.</p>
+                <a href="{{ url_for('invoice_create') }}" class="mt-3 inline-block text-xs font-black text-brand-600 hover:underline">
+                    + إنشاء أول فاتورة للمريض
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- جدول شاشات سطح المكتب والأجهزة الكبيرة (Desktop Table) -->
+    <div class="hidden md:block card-soft bg-white overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-4">رقم الوثيقة / التاريخ</th>
+                        <th class="py-3 px-4">المريض</th>
+                        <th class="py-3 px-4">النوع</th>
+                        <th class="py-3 px-4">الإجمالي</th>
+                        <th class="py-3 px-4">المدفوع</th>
+                        <th class="py-3 px-4">الباقي</th>
+                        <th class="py-3 px-4">الحالة</th>
+                        <th class="py-3 px-4 text-left">إجراءات</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs">
+                    {% if invoices %}
+                        {% for inv in invoices %}
+                            <tr class="hover:bg-sky-50/40 transition">
+                                <!-- رقم الفاتورة -->
+                                <td class="py-3.5 px-4">
+                                    <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="font-black text-brand-700 hover:underline font-mono text-sm block">
+                                        {{ inv.invoice_number }}
+                                    </a>
+                                    <span class="text-[11px] text-slate-400 font-mono">{{ inv.date }}</span>
+                                </td>
+
+                                <!-- المريض -->
+                                <td class="py-3.5 px-4 font-bold text-slate-900">
+                                    <a href="{{ url_for('client_view', client_id=inv.client_id) }}" class="hover:text-brand-600 transition block">
+                                        {{ inv.client_name }}
+                                    </a>
+                                    <span class="text-[11px] text-slate-400 font-mono block">{{ inv.client_phone }}</span>
+                                </td>
+
+                                <!-- النوع -->
+                                <td class="py-3.5 px-4">
+                                    <span class="px-2.5 py-0.5 rounded text-[11px] font-bold {% if inv.type == 'devis' %}bg-indigo-50 text-indigo-700 border border-indigo-200{% else %}bg-sky-50 text-sky-700 border border-sky-200{% endif %}">
+                                        {{ "مقايسة (Devis)" if inv.type == 'devis' else "فاتورة" }}
+                                    </span>
+                                </td>
+
+                                <!-- الإجمالي -->
+                                <td class="py-3.5 px-4 font-black text-slate-900 font-mono">
+                                    {{ inv.total_amount }} {{ cabinet_currency }}
+                                </td>
+
+                                <!-- المدفوع -->
+                                <td class="py-3.5 px-4 font-bold text-emerald-600 font-mono">
+                                    {{ inv.paid_amount }} {{ cabinet_currency }}
+                                </td>
+
+                                <!-- الباقي -->
+                                <td class="py-3.5 px-4 font-bold font-mono">
+                                    {% if inv.remaining_amount > 0 %}
+                                        <span class="text-amber-600">{{ inv.remaining_amount }} {{ cabinet_currency }}</span>
+                                    {% else %}
+                                        <span class="text-slate-400">0</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- الحالة -->
+                                <td class="py-3.5 px-4">
+                                    {% if inv.status == 'payee' %}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">مدفوعة بالكامل</span>
+                                    {% elif inv.status == 'partielle' %}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800">دفعة جزئية</span>
+                                    {% elif inv.status == 'annulee' %}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800">ملغاة</span>
+                                    {% else %}
+                                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-700">في انتظار السداد</span>
+                                    {% endif %}
+                                </td>
+
+                                <!-- إجراءات (✏️ تعديل، 📑 تكرار، 🖨️ طباعة، 🗑️ حذف) -->
+                                <td class="py-3.5 px-4 text-left">
+                                    <div class="flex items-center justify-end space-x-1 space-x-reverse">
+                                        <!-- عرض -->
+                                        <a href="{{ url_for('invoice_view', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition" title="عرض">
+                                            <i class="fa-solid fa-eye"></i>
+                                        </a>
+                                        <!-- تعديل ✏️ -->
+                                        <a href="{{ url_for('invoice_edit', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition" title="تعديل الفاتورة">
+                                            <i class="fa-solid fa-pen"></i>
+                                        </a>
+                                        <!-- تكرار 📑 -->
+                                        <a href="{{ url_for('invoice_duplicate', invoice_id=inv.id) }}" class="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition" title="تكرار / نسخ الفاتورة">
+                                            <i class="fa-solid fa-copy"></i>
+                                        </a>
+                                        <!-- طباعة 🖨️ -->
+                                        <a href="{{ url_for('invoice_print', invoice_id=inv.id) }}" target="_blank" class="p-1.5 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition" title="طباعة">
+                                            <i class="fa-solid fa-print"></i>
+                                        </a>
+                                        <!-- حذف 🗑️ -->
+                                        <form method="POST" action="{{ url_for('invoice_delete', invoice_id=inv.id) }}" onsubmit="return confirm('حذف هذه الفاتورة نهائياً ؟');" class="inline">
+                                            <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition" title="حذف">
+                                                <i class="fa-solid fa-trash-can"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-10 text-slate-400">
+                                <i class="fa-solid fa-file-invoice-dollar text-3xl mb-2 text-slate-300"></i>
+                                <p class="text-xs font-bold">لا توجد فواتير أو مقايسات مطابقة للبحث.</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

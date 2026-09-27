@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}تفاصيل {{ invoice.invoice_number }} - {{ cabinet_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- مسار التنقل والأزرار العلوية -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center space-x-2 space-x-reverse text-xs text-slate-500">
+            <a href="{{ url_for('invoices_list') }}" class="hover:text-brand-600 font-bold">الفواتير والمقايسات</a>
+            <span>/</span>
+            <span class="text-slate-800 font-black font-mono">{{ invoice.invoice_number }}</span>
+        </div>
+        <div class="flex items-center flex-wrap gap-2">
+            <!-- طباعة 🖨️ -->
+            <a href="{{ url_for('invoice_print', invoice_id=invoice.id) }}" target="_blank" class="inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-print ml-1.5"></i> طباعة رسمية
+            </a>
+            <!-- تعديل ✏️ -->
+            <a href="{{ url_for('invoice_edit', invoice_id=invoice.id) }}" class="inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-pen ml-1.5 text-sky-600"></i> تعديل
+            </a>
+            <!-- تكرار 📑 -->
+            <a href="{{ url_for('invoice_duplicate', invoice_id=invoice.id) }}" class="inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-copy ml-1.5 text-amber-600"></i> تكرار الفاتورة
+            </a>
+            <!-- حذف 🗑️ -->
+            <form method="POST" action="{{ url_for('invoice_delete', invoice_id=invoice.id) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذه الفاتورة نهائياً ؟');" class="inline">
+                <button type="submit" class="p-1.5 text-xs text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition" title="حذف الفاتورة">
+                    <i class="fa-solid fa-trash-can"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- بطاقة الفاتورة الورقية الأنيقة -->
+    <div class="card-soft p-6 sm:p-10 bg-white border border-slate-200 space-y-8">
+
+        <!-- ترويسة الفاتورة -->
+        <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 border-b border-slate-200">
+            <div>
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-600 to-cyan-500 text-white flex items-center justify-center text-2xl shadow-md shadow-brand-500/20">
+                        <i class="fa-solid fa-tooth"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-black text-slate-900 leading-tight">{{ cabinet_name }}</h2>
+                        <span class="text-xs text-brand-600 font-bold">طب وجراحة وتقويم الأسنان</span>
+                    </div>
+                </div>
+                <div class="mt-3 text-xs text-slate-500 space-y-0.5">
+                    <p><i class="fa-solid fa-location-dot ml-1.5 text-slate-400"></i> {{ cabinet_address }}</p>
+                    <p><i class="fa-solid fa-phone ml-1.5 text-slate-400"></i> {{ cabinet_phone }}</p>
+                </div>
+            </div>
+
+            <div class="text-right sm:text-left">
+                <span class="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider {% if invoice.type == 'devis' %}bg-indigo-100 text-indigo-800{% else %}bg-sky-100 text-sky-800{% endif %}">
+                    {{ "مقايسة أسعار (Devis)" if invoice.type == 'devis' else "فاتورة علاج (Facture)" }}
+                </span>
+                <h1 class="text-2xl font-black text-slate-900 font-mono mt-2">{{ invoice.invoice_number }}</h1>
+                <div class="mt-2 text-xs text-slate-500 space-y-0.5 font-mono">
+                    <p>تاريخ الإصدار: <strong>{{ invoice.date }}</strong></p>
+                    {% if invoice.due_date %}
+                        <p>تاريخ الاستحقاق: <strong>{{ invoice.due_date }}</strong></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- معلومات المريض والحالة -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-slate-50 p-5 rounded-2xl border border-slate-200">
+            <div>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">المريض المستفيد:</span>
+                <a href="{{ url_for('client_view', client_id=invoice.client_id) }}" class="text-base font-black text-slate-900 hover:text-brand-600 transition block">
+                    {{ invoice.client_name }}
+                </a>
+                <div class="text-xs text-slate-600 mt-1 space-y-0.5">
+                    <p class="font-mono"><i class="fa-solid fa-phone ml-1.5 text-slate-400"></i> {{ invoice.client_phone }}</p>
+                    {% if client and client.address %}
+                        <p><i class="fa-solid fa-map-pin ml-1.5 text-slate-400"></i> {{ client.address }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:items-end justify-between">
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1">حالة السداد:</span>
+                    {% if invoice.status == 'payee' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-emerald-100 text-emerald-800">
+                            <i class="fa-solid fa-circle-check ml-1.5"></i> مدفوعة بالكامل
+                        </span>
+                    {% elif invoice.status == 'partielle' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-100 text-amber-800">
+                            <i class="fa-solid fa-circle-half-stroke ml-1.5"></i> دفعة جزئية
+                        </span>
+                    {% elif invoice.status == 'annulee' %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-800">
+                            <i class="fa-solid fa-circle-xmark ml-1.5"></i> ملغاة
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-slate-200 text-slate-700">
+                            <i class="fa-solid fa-clock ml-1.5"></i> في انتظار السداد
+                        </span>
+                    {% endif %}
+                </div>
+                {% if invoice.discount > 0 %}
+                    <span class="text-xs text-emerald-700 font-bold mt-2">
+                        تم احتساب خصم بقيمة {{ invoice.discount }} {{ cabinet_currency }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- جدول البنود -->
+        <div class="overflow-x-auto">
+            <table class="w-full text-right border-collapse">
+                <thead>
+                    <tr class="border-b-2 border-slate-200 text-xs font-black text-slate-500 uppercase tracking-wider">
+                        <th class="py-3 px-2">#</th>
+                        <th class="py-3 px-4">بيان العلاج / الخدمة</th>
+                        <th class="py-3 px-4 text-center">الكمية</th>
+                        <th class="py-3 px-4 text-left">السعر الفردي</th>
+                        <th class="py-3 px-4 text-left">المجموع</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 text-xs sm:text-sm">
+                    {% for item in invoice['items'] %}
+                        <tr>
+                            <td class="py-3.5 px-2 text-slate-400 font-mono">{{ loop.index }}</td>
+                            <td class="py-3.5 px-4 font-bold text-slate-800">{{ item.description }}</td>
+                            <td class="py-3.5 px-4 text-center font-mono">{{ item.quantity }}</td>
+                            <td class="py-3.5 px-4 text-left font-mono">{{ item.unit_price }} {{ cabinet_currency }}</td>
+                            <td class="py-3.5 px-4 text-left font-black text-slate-900 font-mono">{{ item.total }} {{ cabinet_currency }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ملخص الحساب -->
+        <div class="flex flex-col sm:flex-row justify-end pt-4 border-t border-slate-200">
+            <div class="w-full sm:w-72 space-y-2 text-xs sm:text-sm">
+                <div class="flex justify-between py-1 text-slate-600">
+                    <span>المجموع الإجمالي:</span>
+                    <span class="font-mono font-bold">{{ invoice.total_amount + (invoice.discount or 0) }} {{ cabinet_currency }}</span>
+                </div>
+                {% if invoice.discount > 0 %}
+                    <div class="flex justify-between py-1 text-emerald-700 font-bold">
+                        <span>الخصم:</span>
+                        <span class="font-mono">-{{ invoice.discount }} {{ cabinet_currency }}</span>
+                    </div>
+                {% endif %}
+                <div class="flex justify-between py-2 border-t-2 border-slate-300 text-slate-900 font-black text-base">
+                    <span>الصافي الواجب أداؤه:</span>
+                    <span class="font-mono text-brand-700">{{ invoice.total_amount }} {{ cabinet_currency }}</span>
+                </div>
+                <div class="flex justify-between py-1 text-emerald-600 font-bold">
+                    <span>المبلغ المسدد:</span>
+                    <span class="font-mono">{{ invoice.paid_amount }} {{ cabinet_currency }}</span>
+                </div>
+                <div class="flex justify-between py-1 text-amber-700 font-black border-t border-slate-200 pt-2">
+                    <span>الباقي المستحق:</span>
+                    <span class="font-mono">{{ invoice.remaining_amount }} {{ cabinet_currency }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if invoice.notes %}
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600">
+                <span class="font-bold block mb-1 text-slate-800">ملاحظات وشروط:</span>
+                <p>{{ invoice.notes }}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
