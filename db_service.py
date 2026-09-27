@@ -541,6 +541,30 @@ def update_treatment_status(treatment_id, new_status):
             return True
     return False
 
+def update_treatment(treatment_id, data):
+    update_data = {
+        "updated_at": get_iso_now()
+    }
+    for field in ["title", "teeth_numbers", "shade", "status", "delivery_date", "notes"]:
+        if field in data:
+            update_data[field] = data[field]
+    if "total_cost" in data:
+        update_data["total_cost"] = float(data["total_cost"])
+
+    if USE_SUPABASE:
+        try:
+            res = supabase_client.table("treatments").update(update_data).eq("id", treatment_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            print(f"[Supabase Error update_treatment]: {e}")
+
+    for t in _LOCAL_DB["treatments"]:
+        if t["id"] == treatment_id:
+            t.update(update_data)
+            return t
+    return None
+
 def delete_treatment(treatment_id):
     if USE_SUPABASE:
         try:
@@ -711,6 +735,33 @@ def create_payment(data):
 
     _LOCAL_DB["payments"].insert(0, record)
     return record
+
+def update_payment(payment_id, data):
+    update_data = {}
+    if "amount" in data:
+        update_data["amount"] = float(data["amount"])
+    if "payment_date" in data:
+        update_data["payment_date"] = data["payment_date"]
+    if "payment_method" in data:
+        update_data["payment_method"] = data["payment_method"]
+    if "next_payment_date" in data:
+        update_data["next_payment_date"] = data["next_payment_date"]
+    if "notes" in data:
+        update_data["notes"] = data["notes"]
+
+    if USE_SUPABASE:
+        try:
+            res = supabase_client.table("payments").update(update_data).eq("id", payment_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            print(f"[Supabase Error update_payment]: {e}")
+
+    for p in _LOCAL_DB["payments"]:
+        if p["id"] == payment_id:
+            p.update(update_data)
+            return p
+    return None
 
 def delete_payment(payment_id):
     if USE_SUPABASE:
