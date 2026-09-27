@@ -163,6 +163,7 @@ def client_view(client_id):
     treatments = db_service.get_treatments_by_client(client_id)
     appointments = db_service.get_appointments_by_client(client_id)
     payments = db_service.get_payments_by_client(client_id)
+    invoices = [inv for inv in db_service.get_invoices() if str(inv.get("client_id")) == str(client_id)]
     financials = db_service.calculate_financials_for_client(client_id, treatments, payments)
 
     return render_template(
@@ -171,6 +172,7 @@ def client_view(client_id):
         treatments=treatments,
         appointments=appointments,
         payments=payments,
+        invoices=invoices,
         financials=financials,
         status_labels=db_service.TREATMENT_STATUS_LABELS
     )
@@ -269,6 +271,16 @@ def client_delete(client_id):
     flash("تم حذف ملف المريض.", "info")
     return redirect(url_for("clients_list"))
 
+@app.route("/clients/<client_id>/duplicate", methods=["GET", "POST"])
+def client_duplicate(client_id):
+    dup = db_service.duplicate_client(client_id)
+    if dup:
+        flash(f"تم نسخ ملف المريض بنجاح: {dup.get('first_name')} {dup.get('last_name')}", "success")
+        return redirect(url_for("client_view", client_id=dup["id"]))
+    flash("تعذر تكرار ملف المريض.", "danger")
+    return redirect(url_for("clients_list"))
+
+
 # ==============================================================================
 # ROUTES : PROTHÈSES & TRAITEMENTS (التركيبات وأعمال المختبر)
 # ==============================================================================
@@ -323,6 +335,49 @@ def treatment_delete(treatment_id):
     db_service.delete_treatment(treatment_id)
     flash("تم حذف التركيبة السنية.", "info")
     return redirect(url_for("client_view", client_id=client_id))
+
+@app.route("/treatments/<treatment_id>/edit", methods=["POST"])
+def treatment_edit(treatment_id):
+    client_id = request.form.get("client_id")
+    title = request.form.get("title", "").strip()
+    teeth_numbers = request.form.get("teeth_numbers", "").strip()
+    shade = request.form.get("shade", "").strip()
+    status = request.form.get("status", "empreinte")
+    total_cost = request.form.get("total_cost", "0").replace(",", ".")
+    delivery_date = request.form.get("delivery_date", "").strip()
+    notes = request.form.get("notes", "").strip()
+
+    try:
+        total_cost_val = float(total_cost)
+    except ValueError:
+        total_cost_val = 0.0
+
+    db_service.update_treatment(treatment_id, {
+        "title": title,
+        "teeth_numbers": teeth_numbers,
+        "shade": shade,
+        "status": status,
+        "total_cost": total_cost_val,
+        "delivery_date": delivery_date,
+        "notes": notes
+    })
+    flash("تم تعديل بيانات التركيبة السنية بنجاح.", "success")
+    if client_id:
+        return redirect(url_for("client_view", client_id=client_id))
+    return redirect(url_for("dashboard"))
+
+@app.route("/treatments/<treatment_id>/duplicate", methods=["GET", "POST"])
+def treatment_duplicate(treatment_id):
+    client_id = request.args.get("client_id") or request.form.get("client_id")
+    dup = db_service.duplicate_treatment(treatment_id)
+    if dup:
+        flash("تم تكرار التركيبة السنية بنجاح.", "success")
+        cid = dup.get("client_id") or client_id
+        if cid:
+            return redirect(url_for("client_view", client_id=cid))
+    flash("تعذر تكرار التركيبة.", "danger")
+    return redirect(url_for("clients_list"))
+
 
 # ==============================================================================
 # ROUTES : SÉANCES & RENDEZ-VOUS (الجلسات والمواعيد)
@@ -395,6 +450,49 @@ def appointment_delete(appointment_id):
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("appointments_list"))
 
+@app.route("/appointments/<appointment_id>/edit", methods=["POST"])
+def appointment_edit(appointment_id):
+    client_id = request.form.get("client_id")
+    appointment_date = request.form.get("appointment_date")
+    start_time = request.form.get("start_time")
+    duration_minutes = request.form.get("duration_minutes", "30")
+    act_type = request.form.get("act_type", "استشارة وكشف أولي مع خطة العلاج")
+    status = request.form.get("status", "planifie")
+    notes = request.form.get("notes", "").strip()
+    redirect_to = request.form.get("redirect_to", "appointments")
+
+    try:
+        duration_val = int(duration_minutes)
+    except ValueError:
+        duration_val = 30
+
+    db_service.update_appointment(appointment_id, {
+        "client_id": client_id,
+        "appointment_date": appointment_date,
+        "start_time": start_time,
+        "duration_minutes": duration_val,
+        "act_type": act_type,
+        "status": status,
+        "notes": notes
+    })
+    flash("تم تحديث الموعد بنجاح.", "success")
+    if redirect_to == "client" and client_id:
+        return redirect(url_for("client_view", client_id=client_id))
+    return redirect(url_for("appointments_list"))
+
+@app.route("/appointments/<appointment_id>/duplicate", methods=["GET", "POST"])
+def appointment_duplicate(appointment_id):
+    redirect_to = request.args.get("redirect_to") or request.form.get("redirect_to", "appointments")
+    dup = db_service.duplicate_appointment(appointment_id)
+    if dup:
+        flash("تم تكرار الموعد بنجاح.", "success")
+        if redirect_to == "client" and dup.get("client_id"):
+            return redirect(url_for("client_view", client_id=dup["client_id"]))
+    else:
+        flash("تعذر تكرار الموعد.", "danger")
+    return redirect(url_for("appointments_list"))
+
+
 # ==============================================================================
 # ROUTES : PAIEMENTS & FACTURATION ÉCHELONNÉE (المداخيل والدفعات)
 # ==============================================================================
@@ -450,6 +548,278 @@ def payment_delete(payment_id):
     if client_id:
         return redirect(url_for("client_view", client_id=client_id))
     return redirect(url_for("payments_list"))
+
+@app.route("/payments/<payment_id>/edit", methods=["POST"])
+def payment_edit(payment_id):
+    client_id = request.form.get("client_id")
+    amount = request.form.get("amount", "0").replace(",", ".")
+    payment_date = request.form.get("payment_date")
+    payment_method = request.form.get("payment_method", "especes")
+    next_payment_date = request.form.get("next_payment_date", "").strip()
+    notes = request.form.get("notes", "").strip()
+    redirect_to = request.form.get("redirect_to", "client")
+
+    try:
+        amount_val = float(amount)
+    except ValueError:
+        amount_val = 0.0
+
+    db_service.update_payment(payment_id, {
+        "amount": amount_val,
+        "payment_date": payment_date,
+        "payment_method": payment_method,
+        "next_payment_date": next_payment_date,
+        "notes": notes
+    })
+    flash("تم تعديل بيانات الدفعة بنجاح.", "success")
+    if redirect_to == "client" and client_id:
+        return redirect(url_for("client_view", client_id=client_id))
+    return redirect(url_for("payments_list"))
+
+@app.route("/payments/<payment_id>/duplicate", methods=["GET", "POST"])
+def payment_duplicate(payment_id):
+    redirect_to = request.args.get("redirect_to") or request.form.get("redirect_to", "payments")
+    dup = db_service.duplicate_payment(payment_id)
+    if dup:
+        flash("تم نسخ الدفعة بنجاح.", "success")
+        if redirect_to == "client" and dup.get("client_id"):
+            return redirect(url_for("client_view", client_id=dup["client_id"]))
+    else:
+        flash("تعذر نسخ الدفعة.", "danger")
+    return redirect(url_for("payments_list"))
+
+@app.route("/payments/<payment_id>/print")
+def payment_print(payment_id):
+    payment = db_service.get_payment_by_id(payment_id)
+    if not payment:
+        flash("سجل الدفعة غير موجود.", "warning")
+        return redirect(url_for("payments_list"))
+    client = db_service.get_client_by_id(payment.get("client_id"))
+    treatment = db_service.get_treatment_by_id(payment.get("treatment_id")) if payment.get("treatment_id") else None
+    return render_template("payments/print_receipt.html", payment=payment, client=client, treatment=treatment)
+
+# ==============================================================================
+# ROUTES : FACTURATION & DEVIS (الفواتير والمقايسات)
+# ==============================================================================
+@app.route("/invoices")
+def invoices_list():
+    status_filter = request.args.get("status", "").strip()
+    type_filter = request.args.get("type", "").strip()
+    search_query = request.args.get("q", "").strip()
+    all_invoices = db_service.get_invoices(
+        status=status_filter if status_filter else None,
+        invoice_type=type_filter if type_filter else None
+    )
+    if search_query:
+        q_lower = search_query.lower()
+        all_invoices = [
+            inv for inv in all_invoices
+            if q_lower in inv.get("invoice_number", "").lower()
+            or q_lower in inv.get("client_name", "").lower()
+        ]
+    clients = db_service.get_clients()
+
+    total_invoiced = sum(float(inv.get("total_amount", 0)) for inv in all_invoices if inv.get("type") == "facture")
+    total_paid = sum(float(inv.get("paid_amount", 0)) for inv in all_invoices if inv.get("type") == "facture")
+    total_remaining = sum(float(inv.get("remaining_amount", 0)) for inv in all_invoices if inv.get("type") == "facture")
+
+    return render_template(
+        "invoices/list.html",
+        invoices=all_invoices,
+        clients=clients,
+        status_filter=status_filter,
+        type_filter=type_filter,
+        search_query=search_query,
+        total_invoiced=total_invoiced,
+        total_paid=total_paid,
+        total_remaining=total_remaining
+    )
+
+@app.route("/invoices/new", methods=["GET", "POST"])
+def invoice_create():
+    clients = db_service.get_clients()
+    selected_client_id = request.args.get("client_id", "").strip()
+    client = db_service.get_client_by_id(selected_client_id) if selected_client_id else None
+    treatments = db_service.get_treatments_by_client(selected_client_id) if selected_client_id else []
+
+    if request.method == "POST":
+        client_id = request.form.get("client_id")
+        inv_type = request.form.get("type", "facture")
+        invoice_date = request.form.get("date", date.today().isoformat())
+        due_date = request.form.get("due_date", "").strip()
+        status = request.form.get("status", "non_payee")
+        notes = request.form.get("notes", "").strip()
+
+        item_descriptions = request.form.getlist("item_description[]")
+        item_quantities = request.form.getlist("item_quantity[]")
+        item_unit_prices = request.form.getlist("item_unit_price[]")
+
+        items = []
+        total_amount = 0.0
+        for desc, qty_str, price_str in zip(item_descriptions, item_quantities, item_unit_prices):
+            desc = desc.strip()
+            if not desc:
+                continue
+            try:
+                qty = int(qty_str) if qty_str else 1
+            except ValueError:
+                qty = 1
+            try:
+                unit_price = float(price_str.replace(",", ".")) if price_str else 0.0
+            except ValueError:
+                unit_price = 0.0
+            total_line = round(qty * unit_price, 2)
+            items.append({
+                "description": desc,
+                "quantity": qty,
+                "unit_price": unit_price,
+                "total": total_line
+            })
+            total_amount += total_line
+
+        paid_str = request.form.get("paid_amount", "0").replace(",", ".")
+        try:
+            paid_amount = float(paid_str) if paid_str else 0.0
+        except ValueError:
+            paid_amount = 0.0
+
+        discount_str = request.form.get("discount", "0").replace(",", ".")
+        try:
+            discount = float(discount_str) if discount_str else 0.0
+        except ValueError:
+            discount = 0.0
+
+        net_total = max(0.0, total_amount - discount)
+        remaining_amount = max(0.0, net_total - paid_amount)
+
+        new_inv = db_service.create_invoice({
+            "client_id": client_id,
+            "type": inv_type,
+            "date": invoice_date,
+            "due_date": due_date,
+            "status": status,
+            "items": items,
+            "total_amount": net_total,
+            "paid_amount": paid_amount,
+            "remaining_amount": remaining_amount,
+            "discount": discount,
+            "notes": notes
+        })
+        flash(f"تم إنشاء {'الفاتورة' if inv_type == 'facture' else 'المقايسة'} بنجاح رقم {new_inv.get('invoice_number')} !", "success")
+        return redirect(url_for("invoice_view", invoice_id=new_inv["id"]))
+
+    return render_template("invoices/form.html", clients=clients, selected_client=client, treatments=treatments, is_edit=False)
+
+@app.route("/invoices/<invoice_id>")
+def invoice_view(invoice_id):
+    inv = db_service.get_invoice_by_id(invoice_id)
+    if not inv:
+        flash("الفاتورة غير موجودة.", "warning")
+        return redirect(url_for("invoices_list"))
+    client = db_service.get_client_by_id(inv.get("client_id"))
+    return render_template("invoices/view.html", invoice=inv, client=client)
+
+@app.route("/invoices/<invoice_id>/edit", methods=["GET", "POST"])
+def invoice_edit(invoice_id):
+    inv = db_service.get_invoice_by_id(invoice_id)
+    if not inv:
+        flash("الفاتورة غير موجودة.", "warning")
+        return redirect(url_for("invoices_list"))
+    clients = db_service.get_clients()
+    client = db_service.get_client_by_id(inv.get("client_id"))
+
+    if request.method == "POST":
+        client_id = request.form.get("client_id")
+        inv_type = request.form.get("type", "facture")
+        invoice_date = request.form.get("date", date.today().isoformat())
+        due_date = request.form.get("due_date", "").strip()
+        status = request.form.get("status", "non_payee")
+        notes = request.form.get("notes", "").strip()
+
+        item_descriptions = request.form.getlist("item_description[]")
+        item_quantities = request.form.getlist("item_quantity[]")
+        item_unit_prices = request.form.getlist("item_unit_price[]")
+
+        items = []
+        total_amount = 0.0
+        for desc, qty_str, price_str in zip(item_descriptions, item_quantities, item_unit_prices):
+            desc = desc.strip()
+            if not desc:
+                continue
+            try:
+                qty = int(qty_str) if qty_str else 1
+            except ValueError:
+                qty = 1
+            try:
+                unit_price = float(price_str.replace(",", ".")) if price_str else 0.0
+            except ValueError:
+                unit_price = 0.0
+            total_line = round(qty * unit_price, 2)
+            items.append({
+                "description": desc,
+                "quantity": qty,
+                "unit_price": unit_price,
+                "total": total_line
+            })
+            total_amount += total_line
+
+        paid_str = request.form.get("paid_amount", "0").replace(",", ".")
+        try:
+            paid_amount = float(paid_str) if paid_str else 0.0
+        except ValueError:
+            paid_amount = 0.0
+
+        discount_str = request.form.get("discount", "0").replace(",", ".")
+        try:
+            discount = float(discount_str) if discount_str else 0.0
+        except ValueError:
+            discount = 0.0
+
+        net_total = max(0.0, total_amount - discount)
+        remaining_amount = max(0.0, net_total - paid_amount)
+
+        db_service.update_invoice(invoice_id, {
+            "client_id": client_id,
+            "type": inv_type,
+            "date": invoice_date,
+            "due_date": due_date,
+            "status": status,
+            "items": items,
+            "total_amount": net_total,
+            "paid_amount": paid_amount,
+            "remaining_amount": remaining_amount,
+            "discount": discount,
+            "notes": notes
+        })
+        flash("تم تحديث الفاتورة بنجاح.", "success")
+        return redirect(url_for("invoice_view", invoice_id=invoice_id))
+
+    return render_template("invoices/form.html", invoice=inv, clients=clients, selected_client=client, is_edit=True)
+
+@app.route("/invoices/<invoice_id>/duplicate", methods=["GET", "POST"])
+def invoice_duplicate(invoice_id):
+    dup = db_service.duplicate_invoice(invoice_id)
+    if dup:
+        flash(f"تم تكرار الفاتورة بنجاح، رقم النسخة: {dup.get('invoice_number')}", "success")
+        return redirect(url_for("invoice_view", invoice_id=dup["id"]))
+    flash("تعذر تكرار الفاتورة.", "danger")
+    return redirect(url_for("invoices_list"))
+
+@app.route("/invoices/<invoice_id>/delete", methods=["POST"])
+def invoice_delete(invoice_id):
+    db_service.delete_invoice(invoice_id)
+    flash("تم حذف الفاتورة بنجاح.", "info")
+    return redirect(url_for("invoices_list"))
+
+@app.route("/invoices/<invoice_id>/print")
+def invoice_print(invoice_id):
+    inv = db_service.get_invoice_by_id(invoice_id)
+    if not inv:
+        flash("الفاتورة غير موجودة.", "warning")
+        return redirect(url_for("invoices_list"))
+    client = db_service.get_client_by_id(inv.get("client_id"))
+    return render_template("invoices/print.html", invoice=inv, client=client)
+
 
 # ==============================================================================
 # ROUTE : MODULE QR CODE GOOGLE MAPS (AVIS 5 ÉTOILES)

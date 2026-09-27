@@ -234,6 +234,69 @@ _LOCAL_DB = {
             "notes": "Acompte d'engagement pour démarrage maquette cire.",
             "created_at": get_iso_now()
         }
+    ],
+    "invoices": [
+        {
+            "id": "inv-5001-uuid",
+            "invoice_number": "FAC-2026-0001",
+            "invoice_type": "facture",
+            "client_id": "c1001-bennani-uuid",
+            "issue_date": get_iso_date(-8),
+            "due_date": get_iso_date(7),
+            "items": [
+                {"description": "Couronne Zircone Haute Translucidité (Dent 16)", "quantity": 1, "unit_price": 3000.00, "total": 3000.00}
+            ],
+            "subtotal": 3000.00,
+            "discount": 0.00,
+            "tax_percent": 0.00,
+            "total_amount": 3000.00,
+            "paid_amount": 1500.00,
+            "status": "partielle",
+            "notes": "Acompte versé à l'empreinte. Solde à la pose finale.",
+            "created_at": get_iso_now(),
+            "updated_at": get_iso_now()
+        },
+        {
+            "id": "inv-5002-uuid",
+            "invoice_number": "FAC-2026-0002",
+            "invoice_type": "facture",
+            "client_id": "c1002-amrani-uuid",
+            "issue_date": get_iso_date(-5),
+            "due_date": get_iso_date(10),
+            "items": [
+                {"description": "Bridge Céramo-Céramique 3 Éléments (Dents 24, 25, 26)", "quantity": 1, "unit_price": 7500.00, "total": 7500.00}
+            ],
+            "subtotal": 7500.00,
+            "discount": 0.00,
+            "tax_percent": 0.00,
+            "total_amount": 7500.00,
+            "paid_amount": 3500.00,
+            "status": "partielle",
+            "notes": "Virement bancaire reçu pour la 1ère tranche.",
+            "created_at": get_iso_now(),
+            "updated_at": get_iso_now()
+        },
+        {
+            "id": "inv-5003-uuid",
+            "invoice_number": "DEV-2026-0001",
+            "invoice_type": "devis",
+            "client_id": "c1003-mansouri-uuid",
+            "issue_date": get_iso_date(-3),
+            "due_date": get_iso_date(15),
+            "items": [
+                {"description": "Prothèse Adjointe Métallique Squelettique Stellite", "quantity": 1, "unit_price": 4500.00, "total": 4500.00},
+                {"description": "Détartrage & Polissage complet aux ultrasons", "quantity": 1, "unit_price": 500.00, "total": 500.00}
+            ],
+            "subtotal": 5000.00,
+            "discount": 200.00,
+            "tax_percent": 0.00,
+            "total_amount": 4800.00,
+            "paid_amount": 2000.00,
+            "status": "partielle",
+            "notes": "Devis estimatif accepté par le patient.",
+            "created_at": get_iso_now(),
+            "updated_at": get_iso_now()
+        }
     ]
 }
 
@@ -428,6 +491,21 @@ def delete_client(client_id):
     _LOCAL_DB["payments"] = [p for p in _LOCAL_DB["payments"] if p["client_id"] != client_id]
     return True
 
+def duplicate_client(client_id):
+    orig = get_client_by_id(client_id)
+    if not orig:
+        return None
+    data = {
+        "first_name": f"{orig.get('first_name', '')} (نسخة)",
+        "last_name": orig.get("last_name", ""),
+        "phone": orig.get("phone", ""),
+        "email": orig.get("email", ""),
+        "address": orig.get("address", ""),
+        "medical_notes": orig.get("medical_notes", "")
+    }
+    return create_client(data)
+
+
 # ==============================================================================
 # GESTION DES TRAITEMENTS & PROTHÈSES
 # ==============================================================================
@@ -575,6 +653,44 @@ def delete_treatment(treatment_id):
     _LOCAL_DB["treatments"] = [t for t in _LOCAL_DB["treatments"] if t["id"] != treatment_id]
     return True
 
+def get_treatment_by_id(treatment_id):
+    if USE_SUPABASE and is_valid_uuid(treatment_id):
+        try:
+            res = supabase_client.table("treatments").select("*, clients(first_name, last_name, phone)").eq("id", treatment_id).execute()
+            if res.data:
+                t = res.data[0]
+                client = t.get("clients") or {}
+                t["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+                t["client_phone"] = client.get("phone", "")
+                return t
+        except Exception as e:
+            print(f"[Supabase Error get_treatment_by_id]: {e}")
+    for t in _LOCAL_DB["treatments"]:
+        if t["id"] == treatment_id:
+            c = next((cl for cl in _LOCAL_DB["clients"] if cl["id"] == t.get("client_id")), {})
+            t_copy = dict(t)
+            t_copy["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+            t_copy["client_phone"] = c.get("phone", "")
+            return t_copy
+    return None
+
+def duplicate_treatment(treatment_id):
+    orig = get_treatment_by_id(treatment_id)
+    if not orig:
+        return None
+    data = {
+        "client_id": orig.get("client_id"),
+        "title": f"{orig.get('title', '')} (نسخة)",
+        "teeth_numbers": orig.get("teeth_numbers", ""),
+        "shade": orig.get("shade", ""),
+        "status": "empreinte",
+        "total_cost": float(orig.get("total_cost", 0.0)),
+        "delivery_date": orig.get("delivery_date"),
+        "notes": orig.get("notes", "")
+    }
+    return create_treatment(data)
+
+
 # ==============================================================================
 # GESTION DES RENDEZ-VOUS & SÉANCES
 # ==============================================================================
@@ -673,6 +789,64 @@ def delete_appointment(appointment_id):
 
     _LOCAL_DB["appointments"] = [a for a in _LOCAL_DB["appointments"] if a["id"] != appointment_id]
     return True
+
+def get_appointment_by_id(appointment_id):
+    if USE_SUPABASE and is_valid_uuid(appointment_id):
+        try:
+            res = supabase_client.table("appointments").select("*, clients(first_name, last_name, phone)").eq("id", appointment_id).execute()
+            if res.data:
+                a = res.data[0]
+                client = a.get("clients") or {}
+                a["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+                a["client_phone"] = client.get("phone", "")
+                return a
+        except Exception as e:
+            print(f"[Supabase Error get_appointment_by_id]: {e}")
+    for a in _LOCAL_DB["appointments"]:
+        if a["id"] == appointment_id:
+            c = next((cl for cl in _LOCAL_DB["clients"] if cl["id"] == a.get("client_id")), {})
+            a_copy = dict(a)
+            a_copy["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+            a_copy["client_phone"] = c.get("phone", "")
+            return a_copy
+    return None
+
+def update_appointment(appointment_id, data):
+    update_data = {}
+    for f in ["client_id", "appointment_date", "start_time", "duration_minutes", "act_type", "status", "notes"]:
+        if f in data:
+            if f == "duration_minutes":
+                update_data[f] = int(data[f])
+            else:
+                update_data[f] = data[f]
+    if USE_SUPABASE and is_valid_uuid(appointment_id):
+        try:
+            res = supabase_client.table("appointments").update(update_data).eq("id", appointment_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            print(f"[Supabase Error update_appointment]: {e}")
+    for a in _LOCAL_DB["appointments"]:
+        if a["id"] == appointment_id:
+            a.update(update_data)
+            return a
+    return None
+
+def duplicate_appointment(appointment_id):
+    orig = get_appointment_by_id(appointment_id)
+    if not orig:
+        return None
+    data = {
+        "client_id": orig.get("client_id"),
+        "appointment_date": orig.get("appointment_date"),
+        "start_time": orig.get("start_time"),
+        "duration_minutes": int(orig.get("duration_minutes", 30)),
+        "act_type": orig.get("act_type", "Consultation"),
+        "status": "planifie",
+        "notes": f"تكرار موعد سابق: {orig.get('notes', '')}".strip()
+    }
+    return create_appointment(data)
+
 
 # ==============================================================================
 # GESTION DES PAIEMENTS & FACTURATION ÉCHELONNÉE
@@ -773,6 +947,262 @@ def delete_payment(payment_id):
     _LOCAL_DB["payments"] = [p for p in _LOCAL_DB["payments"] if p["id"] != payment_id]
     return True
 
+def get_payment_by_id(payment_id):
+    if USE_SUPABASE and is_valid_uuid(payment_id):
+        try:
+            res = supabase_client.table("payments").select("*, clients(first_name, last_name, phone)").eq("id", payment_id).execute()
+            if res.data:
+                p = res.data[0]
+                client = p.get("clients") or {}
+                p["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+                p["client_phone"] = client.get("phone", "")
+                return p
+        except Exception as e:
+            print(f"[Supabase Error get_payment_by_id]: {e}")
+    for p in _LOCAL_DB["payments"]:
+        if p["id"] == payment_id:
+            c = next((cl for cl in _LOCAL_DB["clients"] if cl["id"] == p.get("client_id")), {})
+            p_copy = dict(p)
+            p_copy["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+            p_copy["client_phone"] = c.get("phone", "")
+            return p_copy
+    return None
+
+def duplicate_payment(payment_id):
+    orig = get_payment_by_id(payment_id)
+    if not orig:
+        return None
+    data = {
+        "client_id": orig.get("client_id"),
+        "treatment_id": orig.get("treatment_id"),
+        "amount": float(orig.get("amount", 0.0)),
+        "payment_date": date.today().isoformat(),
+        "payment_method": orig.get("payment_method", "especes"),
+        "next_payment_date": orig.get("next_payment_date"),
+        "notes": f"دفعة مكررة: {orig.get('notes', '')}".strip()
+    }
+    return create_payment(data)
+
+# ==============================================================================
+# GESTION DES FACTURES & DEVIS (الفواتير والمقايسات)
+# ==============================================================================
+def get_invoices(search_query=None, status_filter=None, type_filter=None, client_id=None, status=None, invoice_type=None):
+    if status and not status_filter:
+        status_filter = status
+    if invoice_type and not type_filter:
+        type_filter = invoice_type
+
+    if USE_SUPABASE:
+        try:
+            query = supabase_client.table("invoices").select("*, clients(first_name, last_name, phone)").order("created_at", desc=True)
+            if client_id and is_valid_uuid(client_id):
+                query = query.eq("client_id", client_id)
+            if status_filter:
+                query = query.eq("status", status_filter)
+            if type_filter:
+                query = query.eq("invoice_type", type_filter)
+            res = query.execute()
+            invoices = res.data or []
+            for inv in invoices:
+                c = inv.get("clients") or {}
+                inv["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+                inv["client_phone"] = c.get("phone", "")
+                inv["total_amount"] = float(inv.get("total_amount", 0.0))
+                inv["paid_amount"] = float(inv.get("paid_amount", 0.0))
+                inv["remaining_amount"] = round(max(0.0, inv["total_amount"] - inv["paid_amount"]), 2)
+                inv["type"] = inv.get("invoice_type", "facture")
+                inv["date"] = inv.get("issue_date") or inv.get("date", "")
+            if search_query:
+                sq = search_query.lower()
+                invoices = [i for i in invoices if sq in i.get("invoice_number", "").lower() or sq in i.get("client_name", "").lower() or sq in i.get("client_phone", "")]
+            return invoices
+        except Exception as e:
+            print(f"[Supabase Error get_invoices]: {e}")
+            invoices = _LOCAL_DB.get("invoices", [])
+    else:
+        invoices = _LOCAL_DB.get("invoices", [])
+
+    results = []
+    client_map = {c["id"]: c for c in _LOCAL_DB["clients"]}
+    for inv in invoices:
+        c = client_map.get(inv.get("client_id"), {})
+        i_copy = dict(inv)
+        i_copy["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+        i_copy["client_phone"] = c.get("phone", "")
+        t_amt = float(i_copy.get("total_amount", 0.0))
+        p_amt = float(i_copy.get("paid_amount", 0.0))
+        i_copy["total_amount"] = round(t_amt, 2)
+        i_copy["paid_amount"] = round(p_amt, 2)
+        i_copy["remaining_amount"] = round(max(0.0, t_amt - p_amt), 2)
+        i_copy["type"] = i_copy.get("invoice_type", "facture")
+        i_copy["date"] = i_copy.get("issue_date") or i_copy.get("date", "")
+        
+        if client_id and inv.get("client_id") != client_id:
+            continue
+        if status_filter and inv.get("status") != status_filter:
+            continue
+        if type_filter and i_copy.get("invoice_type") != type_filter and i_copy.get("type") != type_filter:
+            continue
+        if search_query:
+            sq = search_query.lower()
+            if sq not in i_copy.get("invoice_number", "").lower() and sq not in i_copy["client_name"].lower() and sq not in i_copy["client_phone"]:
+                continue
+        results.append(i_copy)
+
+    return sorted(results, key=lambda x: x.get("created_at", ""), reverse=True)
+
+
+def get_invoice_by_id(invoice_id):
+    if USE_SUPABASE and is_valid_uuid(invoice_id):
+        try:
+            res = supabase_client.table("invoices").select("*, clients(*)").eq("id", invoice_id).execute()
+            if res.data:
+                inv = res.data[0]
+                client = inv.get("clients") or {}
+                inv["client_name"] = f"{client.get('last_name', '')} {client.get('first_name', '')}".strip()
+                inv["client_phone"] = client.get("phone", "")
+                inv["client_address"] = client.get("address", "")
+                inv["total_amount"] = float(inv.get("total_amount", 0.0))
+                inv["paid_amount"] = float(inv.get("paid_amount", 0.0))
+                inv["remaining_amount"] = round(max(0.0, inv["total_amount"] - inv["paid_amount"]), 2)
+                return inv
+        except Exception as e:
+            print(f"[Supabase Error get_invoice_by_id]: {e}")
+    for inv in _LOCAL_DB.get("invoices", []):
+        if inv["id"] == invoice_id:
+            c = next((cl for cl in _LOCAL_DB["clients"] if cl["id"] == inv.get("client_id")), {})
+            i_copy = dict(inv)
+            i_copy["client_name"] = f"{c.get('last_name', '')} {c.get('first_name', '')}".strip()
+            i_copy["client_phone"] = c.get("phone", "")
+            i_copy["client_address"] = c.get("address", "")
+            t_amt = float(i_copy.get("total_amount", 0.0))
+            p_amt = float(i_copy.get("paid_amount", 0.0))
+            i_copy["total_amount"] = round(t_amt, 2)
+            i_copy["paid_amount"] = round(p_amt, 2)
+            i_copy["remaining_amount"] = round(max(0.0, t_amt - p_amt), 2)
+            return i_copy
+    return None
+
+def generate_invoice_number(invoice_type="facture"):
+    year = datetime.now().year
+    prefix = "FAC" if invoice_type == "facture" else "DEV"
+    existing = [i for i in _LOCAL_DB.get("invoices", []) if i.get("invoice_type") == invoice_type]
+    count = len(existing) + 1
+    return f"{prefix}-{year}-{count:04d}"
+
+def create_invoice(data):
+    new_id = str(uuid.uuid4())
+    inv_type = data.get("invoice_type", "facture")
+    inv_number = data.get("invoice_number") or generate_invoice_number(inv_type)
+    
+    subtotal = float(data.get("subtotal", 0.0))
+    discount = float(data.get("discount", 0.0))
+    tax_percent = float(data.get("tax_percent", 0.0))
+    total_amount = float(data.get("total_amount", max(0.0, subtotal - discount)))
+    paid_amount = float(data.get("paid_amount", 0.0))
+    
+    status = data.get("status")
+    if not status or status == "auto":
+        if paid_amount >= total_amount and total_amount > 0:
+            status = "payee"
+        elif paid_amount > 0:
+            status = "partielle"
+        else:
+            status = "impayee"
+
+    record = {
+        "id": new_id,
+        "invoice_number": inv_number,
+        "invoice_type": inv_type,
+        "client_id": data.get("client_id"),
+        "issue_date": data.get("issue_date") or date.today().isoformat(),
+        "due_date": data.get("due_date") or (date.today() + timedelta(days=15)).isoformat(),
+        "items": data.get("items") or [],
+        "subtotal": round(subtotal, 2),
+        "discount": round(discount, 2),
+        "tax_percent": round(tax_percent, 2),
+        "total_amount": round(total_amount, 2),
+        "paid_amount": round(paid_amount, 2),
+        "status": status,
+        "notes": data.get("notes", "").strip(),
+        "created_at": get_iso_now(),
+        "updated_at": get_iso_now()
+    }
+
+    if USE_SUPABASE:
+        try:
+            res = supabase_client.table("invoices").insert(record).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            print(f"[Supabase Error create_invoice]: {e}")
+
+    _LOCAL_DB.setdefault("invoices", []).insert(0, record)
+    return record
+
+def update_invoice(invoice_id, data):
+    update_data = {"updated_at": get_iso_now()}
+    for f in ["invoice_type", "client_id", "issue_date", "due_date", "items", "subtotal", "discount", "tax_percent", "total_amount", "paid_amount", "status", "notes"]:
+        if f in data:
+            if f in ["subtotal", "discount", "tax_percent", "total_amount", "paid_amount"]:
+                update_data[f] = float(data[f])
+            else:
+                update_data[f] = data[f]
+                
+    if "total_amount" in update_data and "paid_amount" in update_data:
+        t_amt = update_data["total_amount"]
+        p_amt = update_data["paid_amount"]
+        if p_amt >= t_amt and t_amt > 0:
+            update_data["status"] = "payee"
+        elif p_amt > 0:
+            update_data["status"] = "partielle"
+        else:
+            update_data["status"] = "impayee"
+
+    if USE_SUPABASE and is_valid_uuid(invoice_id):
+        try:
+            res = supabase_client.table("invoices").update(update_data).eq("id", invoice_id).execute()
+            if res.data:
+                return res.data[0]
+        except Exception as e:
+            print(f"[Supabase Error update_invoice]: {e}")
+
+    for inv in _LOCAL_DB.get("invoices", []):
+        if inv["id"] == invoice_id:
+            inv.update(update_data)
+            return inv
+    return None
+
+def duplicate_invoice(invoice_id):
+    orig = get_invoice_by_id(invoice_id)
+    if not orig:
+        return None
+    data = {
+        "invoice_type": orig.get("invoice_type", "facture"),
+        "client_id": orig.get("client_id"),
+        "issue_date": date.today().isoformat(),
+        "due_date": (date.today() + timedelta(days=15)).isoformat(),
+        "items": orig.get("items", []),
+        "subtotal": orig.get("subtotal", 0.0),
+        "discount": orig.get("discount", 0.0),
+        "tax_percent": orig.get("tax_percent", 0.0),
+        "total_amount": orig.get("total_amount", 0.0),
+        "paid_amount": 0.0,
+        "status": "impayee",
+        "notes": f"تكرار فاتورة سابقة: {orig.get('notes', '')}".strip()
+    }
+    return create_invoice(data)
+
+def delete_invoice(invoice_id):
+    if USE_SUPABASE and is_valid_uuid(invoice_id):
+        try:
+            supabase_client.table("invoices").delete().eq("id", invoice_id).execute()
+        except Exception as e:
+            print(f"[Supabase Error delete_invoice]: {e}")
+
+    _LOCAL_DB["invoices"] = [i for i in _LOCAL_DB.get("invoices", []) if i["id"] != invoice_id]
+    return True
+
 # ==============================================================================
 # STATISTIQUES GLOBALES DU TABLEAU DE BORD
 # ==============================================================================
@@ -783,6 +1213,7 @@ def get_dashboard_metrics():
     today_appointments = get_appointments(date_filter=today_str)
     upcoming_appointments = get_appointments(upcoming_only=True)
     recent_payments = get_all_payments(limit=10)
+    invoices = get_invoices()
 
     total_quote_all = sum(c.get("total_quote", 0.0) for c in clients)
     total_paid_all = sum(c.get("total_paid", 0.0) for c in clients)
@@ -809,6 +1240,8 @@ def get_dashboard_metrics():
         "today_appointments": today_appointments,
         "urgent_treatments": treatments[:5],
         "recent_payments": recent_payments,
+        "total_invoices_count": len(invoices),
+        "recent_invoices": invoices[:5],
         "financial": {
             "total_quote": round(total_quote_all, 2),
             "total_paid": round(total_paid_all, 2),
