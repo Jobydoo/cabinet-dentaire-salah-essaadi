@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // 2. إدارة النوافذ المنبثقة (Modals)
-    window.openModal = function(modalId) {
+    window.openModal = window.openModal || function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.remove("hidden");
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    window.closeModal = function(modalId) {
+    window.closeModal = window.closeModal || function(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) {
             modal.classList.add("hidden");
