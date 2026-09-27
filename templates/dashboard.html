@@ -11,19 +11,22 @@
             <h1 class="text-2xl font-black text-slate-900 tracking-tight">{{ cabinet_name }}</h1>
             <p class="text-xs sm:text-sm text-slate-500 mt-0.5">نظام مبسط وسهل لإدارة ملفات المرضى، مواعيد العيادة ومتابعة المداخيل.</p>
         </div>
-        <!-- 4 أزرار إجراءات سريعة ومباشرة -->
+        <!-- 5 أزرار إجراءات سريعة ومباشرة -->
         <div class="flex flex-wrap items-center gap-2">
-            <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-user-plus ml-1.5"></i> + مريض جديد
+            <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-user-plus ml-1.5"></i> مريض جديد
             </a>
-            <a href="{{ url_for('appointments_list') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-sky-600 hover:bg-sky-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-calendar-plus ml-1.5"></i> + موعد جديد
+            <a href="{{ url_for('appointments_list') }}" class="inline-flex items-center px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-sky-600 hover:bg-sky-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-calendar-plus ml-1.5"></i> موعد جديد
             </a>
-            <a href="{{ url_for('payments_list') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-file-invoice-dollar ml-1.5"></i> + تسجيل دفعة
+            <a href="{{ url_for('invoice_create') }}" class="inline-flex items-center px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-file-invoice ml-1.5"></i> فاتورة جديدة
             </a>
-            <a href="{{ url_for('qrcode_module') }}" class="inline-flex items-center px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition active:scale-95">
-                <i class="fa-solid fa-qrcode ml-1.5"></i> تقييم جوجل 5★
+            <a href="{{ url_for('payments_list') }}" class="inline-flex items-center px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-wallet ml-1.5"></i> تسجيل دفعة
+            </a>
+            <a href="{{ url_for('qrcode_module') }}" class="inline-flex items-center px-3 sm:px-3.5 py-2 text-xs font-bold rounded-xl text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition active:scale-95">
+                <i class="fa-solid fa-star ml-1.5"></i> تقييم جوجل
             </a>
         </div>
     </div>

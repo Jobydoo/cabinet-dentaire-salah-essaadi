@@ -97,6 +97,9 @@
                         <a href="{{ url_for('appointments_list') }}" class="px-3 py-2 rounded-lg text-xs font-bold transition {% if '/appointments' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
                             <i class="fa-solid fa-calendar-check ml-1 text-xs"></i> المواعيد والجلسات
                         </a>
+                        <a href="{{ url_for('invoices_list') }}" class="px-3 py-2 rounded-lg text-xs font-bold transition {% if '/invoices' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
+                            <i class="fa-solid fa-file-invoice-dollar ml-1 text-xs"></i> الفواتير والمقايسات
+                        </a>
                         <a href="{{ url_for('payments_list') }}" class="px-3 py-2 rounded-lg text-xs font-bold transition {% if '/payments' in request.path %}text-brand-600 bg-brand-50{% else %}text-slate-600 hover:text-brand-600 hover:bg-slate-50{% endif %}">
                             <i class="fa-solid fa-wallet ml-1 text-xs"></i> المداخيل والدفعات
                         </a>
@@ -106,21 +109,26 @@
                     </div>
                 </div>
 
-                <!-- البحث السريع وزر إضافة مريض -->
-                <div class="flex items-center space-x-3 space-x-reverse">
+                <!-- البحث السريع وأزرار الإضافة السريعة -->
+                <div class="flex items-center space-x-2 sm:space-x-3 space-x-reverse">
                     <!-- حقل البحث التلقائي -->
                     <div class="relative hidden sm:block">
                         <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
                             <i class="fa-solid fa-magnifying-glass text-xs"></i>
                         </div>
-                        <input type="text" id="global-search-input" placeholder="ابحث عن مريض بالاسم أو الهاتف..." class="w-48 lg:w-64 pr-9 pl-3 py-1.5 text-xs bg-slate-100 border border-transparent rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
+                        <input type="text" id="global-search-input" placeholder="ابحث عن مريض بالاسم أو الهاتف..." class="w-40 md:w-56 lg:w-64 pr-9 pl-3 py-1.5 text-xs bg-slate-100 border border-transparent rounded-lg focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-100 outline-none transition">
                         <!-- قائمة نتائج البحث -->
                         <div id="global-search-results" class="absolute left-0 mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-200 hidden z-50 overflow-hidden max-h-80 overflow-y-auto"></div>
                     </div>
 
                     <!-- زر إضافة مريض جديد -->
-                    <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-3.5 py-1.5 text-xs font-bold rounded-lg text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
-                        <i class="fa-solid fa-user-plus ml-1.5"></i> مريض جديد
+                    <a href="{{ url_for('client_create') }}" class="inline-flex items-center px-2.5 sm:px-3.5 py-1.5 text-xs font-bold rounded-lg text-white bg-brand-600 hover:bg-brand-700 shadow-sm transition active:scale-95">
+                        <i class="fa-solid fa-user-plus sm:ml-1.5"></i> <span class="hidden sm:inline">مريض جديد</span>
+                    </a>
+
+                    <!-- زر إنشاء فاتورة سريعة -->
+                    <a href="{{ url_for('invoice_create') }}" class="inline-flex items-center px-2.5 sm:px-3 py-1.5 text-xs font-bold rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition active:scale-95" title="فاتورة جديدة">
+                        <i class="fa-solid fa-plus-circle sm:ml-1.5"></i> <span class="hidden sm:inline">فاتورة</span>
                     </a>
                 </div>
             </div>
@@ -132,7 +140,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="flex items-center justify-between p-3.5 mb-3 text-xs sm:text-sm rounded-xl border shadow-sm transition-all
+                    <div class="flex items-center justify-between p-3 sm:p-3.5 mb-3 text-xs sm:text-sm rounded-xl border shadow-sm transition-all
                         {% if category == 'success' %}bg-emerald-50 text-emerald-800 border-emerald-200
                         {% elif category == 'danger' %}bg-rose-50 text-rose-800 border-rose-200
                         {% elif category == 'warning' %}bg-amber-50 text-amber-800 border-amber-200
@@ -141,7 +149,7 @@
                             <i class="{% if category == 'success' %}fa-solid fa-circle-check text-emerald-600
                                       {% elif category == 'danger' %}fa-solid fa-triangle-exclamation text-rose-600
                                       {% elif category == 'warning' %}fa-solid fa-circle-exclamation text-amber-600
-                                      {% else %}fa-solid fa-circle-info text-sky-600{% endif %} ml-2.5 text-base"></i>
+                                      {% else %}fa-solid fa-circle-info text-sky-600{% endif %} ml-2 text-sm sm:text-base"></i>
                             <span class="font-bold">{{ message }}</span>
                         </div>
                         <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-600 text-sm p-1">
@@ -153,13 +161,44 @@
         {% endwith %}
     </div>
 
-    <!-- المحتوى الرئيسي -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- المحتوى الرئيسي مع هامش سفلي لحماية شريط الهواتف -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 md:pb-8">
         {% block content %}{% endblock %}
     </main>
 
+    <!-- شريط التنقل السفلي الفاخر للهواتف والأجهزة اللوحية (Mobile / Tablet Bottom Bar) -->
+    <nav class="md:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-900/95 backdrop-blur-xl border-t border-slate-800 text-white shadow-2xl safe-area-bottom">
+        <div class="grid grid-cols-5 gap-0.5 items-center max-w-lg mx-auto text-center px-1 py-1.5">
+            <!-- 1. الرئيسية -->
+            <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95 {% if request.path == '/' %}text-brand-400 font-black bg-slate-800/70{% else %}text-slate-400 hover:text-white font-medium{% endif %}">
+                <i class="fa-solid fa-chart-pie text-base mb-1"></i>
+                <span class="text-[10px] leading-none">الرئيسية</span>
+            </a>
+            <!-- 2. المرضى -->
+            <a href="{{ url_for('clients_list') }}" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95 {% if '/clients' in request.path %}text-brand-400 font-black bg-slate-800/70{% else %}text-slate-400 hover:text-white font-medium{% endif %}">
+                <i class="fa-solid fa-users text-base mb-1"></i>
+                <span class="text-[10px] leading-none">المرضى</span>
+            </a>
+            <!-- 3. المواعيد -->
+            <a href="{{ url_for('appointments_list') }}" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95 {% if '/appointments' in request.path %}text-brand-400 font-black bg-slate-800/70{% else %}text-slate-400 hover:text-white font-medium{% endif %}">
+                <i class="fa-solid fa-calendar-check text-base mb-1"></i>
+                <span class="text-[10px] leading-none">المواعيد</span>
+            </a>
+            <!-- 4. الفواتير -->
+            <a href="{{ url_for('invoices_list') }}" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95 {% if '/invoices' in request.path %}text-brand-400 font-black bg-slate-800/70{% else %}text-slate-400 hover:text-white font-medium{% endif %}">
+                <i class="fa-solid fa-file-invoice-dollar text-base mb-1"></i>
+                <span class="text-[10px] leading-none">الفواتير</span>
+            </a>
+            <!-- 5. المداخيل -->
+            <a href="{{ url_for('payments_list') }}" class="flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition active:scale-95 {% if '/payments' in request.path %}text-brand-400 font-black bg-slate-800/70{% else %}text-slate-400 hover:text-white font-medium{% endif %}">
+                <i class="fa-solid fa-wallet text-base mb-1"></i>
+                <span class="text-[10px] leading-none">المداخيل</span>
+            </a>
+        </div>
+    </nav>
+
     <!-- التذييل البسيط -->
-    <footer class="bg-white border-t border-slate-200 py-5 mt-auto">
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto mb-14 md:mb-0">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500">
             <div class="flex items-center space-x-2 space-x-reverse mb-2 sm:mb-0">
                 <i class="fa-solid fa-tooth text-brand-600"></i>
