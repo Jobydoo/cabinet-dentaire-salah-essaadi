@@ -142,5 +142,39 @@ class DentalLabTestCase(unittest.TestCase):
         from api.index import app as vercel_app
         self.assertIsNotNone(vercel_app)
 
+    def test_10_client_creation_with_payment_and_remaining(self):
+        import uuid
+        test_lastname = f"Finance_{uuid.uuid4().hex[:6]}"
+        res = self.client.post('/clients/new', data={
+            'first_name': 'يوسف',
+            'last_name': test_lastname,
+            'phone': '+212 6 77 88 99 00',
+            'paid_amount': '450.00',
+            'remaining_amount': '1050.00',
+            'address': 'حي النخيل',
+            'medical_notes': 'حساب علاجي أولي'
+        }, follow_redirects=True)
+        self.assertEqual(res.status_code, 200)
+
+        clients = db_service.get_clients(test_lastname)
+        self.assertTrue(len(clients) > 0)
+        client_id = clients[0]['id']
+
+        try:
+            fin = db_service.calculate_financials_for_client(client_id)
+            self.assertEqual(fin['total_quote'], 1500.0)
+            self.assertEqual(fin['total_paid'], 450.0)
+            self.assertEqual(fin['remaining_balance'], 1050.0)
+
+            # Test GET /clients/new and /clients/<id>/edit contains the new inputs
+            edit_res = self.client.get(f'/clients/{client_id}/edit')
+            self.assertEqual(edit_res.status_code, 200)
+            self.assertIn("paid_amount".encode('utf-8'), edit_res.data)
+            self.assertIn("remaining_amount".encode('utf-8'), edit_res.data)
+            self.assertIn("الدفع".encode('utf-8'), edit_res.data)
+            self.assertIn("الباقي".encode('utf-8'), edit_res.data)
+        finally:
+            db_service.delete_client(client_id)
+
 if __name__ == '__main__':
     unittest.main()
