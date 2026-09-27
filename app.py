@@ -97,10 +97,22 @@ def client_create():
         email = request.form.get("email", "").strip()
         address = request.form.get("address", "").strip()
         medical_notes = request.form.get("medical_notes", "").strip()
+        paid_amount_str = request.form.get("paid_amount", "").strip().replace(",", ".")
+        remaining_amount_str = request.form.get("remaining_amount", "").strip().replace(",", ".")
 
         if not first_name or not last_name or not phone:
             flash("يرجى ملء الاسم الشخصي والعائلي ورقم الهاتف على الأقل.", "danger")
             return render_template("clients/form.html", client={})
+
+        try:
+            paid_amount = max(0.0, float(paid_amount_str)) if paid_amount_str else 0.0
+        except ValueError:
+            paid_amount = 0.0
+
+        try:
+            remaining_amount = max(0.0, float(remaining_amount_str)) if remaining_amount_str else 0.0
+        except ValueError:
+            remaining_amount = 0.0
 
         new_client = db_service.create_client({
             "first_name": first_name,
@@ -110,8 +122,34 @@ def client_create():
             "address": address,
             "medical_notes": medical_notes
         })
+        client_id = new_client["id"]
+
+        total_cost = paid_amount + remaining_amount
+        if total_cost > 0:
+            treatment_record = db_service.create_treatment({
+                "client_id": client_id,
+                "title": "كشف وعلاج أسنان",
+                "teeth_numbers": "",
+                "shade": "",
+                "status": "empreinte",
+                "total_cost": total_cost,
+                "delivery_date": None,
+                "notes": f"تم تسجيل الحساب عند فتح الملف: مدفوع ({paid_amount})، باقي ({remaining_amount})"
+            })
+
+            if paid_amount > 0:
+                db_service.create_payment({
+                    "client_id": client_id,
+                    "treatment_id": treatment_record.get("id") if treatment_record else None,
+                    "amount": paid_amount,
+                    "payment_date": date.today().isoformat(),
+                    "payment_method": "especes",
+                    "next_payment_date": None,
+                    "notes": "دفعة أولى عند فتح الملف"
+                })
+
         flash(f"تم تسجيل المريض {first_name} {last_name} بنجاح !", "success")
-        return redirect(url_for("client_view", client_id=new_client["id"]))
+        return redirect(url_for("client_view", client_id=client_id))
 
     return render_template("clients/form.html", client={}, is_edit=False)
 
@@ -151,10 +189,22 @@ def client_edit(client_id):
         email = request.form.get("email", "").strip()
         address = request.form.get("address", "").strip()
         medical_notes = request.form.get("medical_notes", "").strip()
+        paid_amount_str = request.form.get("paid_amount", "").strip().replace(",", ".")
+        remaining_amount_str = request.form.get("remaining_amount", "").strip().replace(",", ".")
 
         if not first_name or not last_name or not phone:
             flash("الاسم الشخصي والعائلي ورقم الهاتف معلومات إلزامية.", "danger")
             return render_template("clients/form.html", client=client, is_edit=True)
+
+        try:
+            paid_amount = max(0.0, float(paid_amount_str)) if paid_amount_str else 0.0
+        except ValueError:
+            paid_amount = 0.0
+
+        try:
+            remaining_amount = max(0.0, float(remaining_amount_str)) if remaining_amount_str else 0.0
+        except ValueError:
+            remaining_amount = 0.0
 
         db_service.update_client(client_id, {
             "first_name": first_name,
@@ -164,6 +214,50 @@ def client_edit(client_id):
             "address": address,
             "medical_notes": medical_notes
         })
+
+        treatments = db_service.get_treatments_by_client(client_id)
+        payments = db_service.get_payments_by_client(client_id)
+        total_cost = paid_amount + remaining_amount
+
+        if not treatments and total_cost > 0:
+            treatment_record = db_service.create_treatment({
+                "client_id": client_id,
+                "title": "كشف وعلاج أسنان",
+                "teeth_numbers": "",
+                "shade": "",
+                "status": "empreinte",
+                "total_cost": total_cost,
+                "delivery_date": None,
+                "notes": f"تم تسجيل الحساب عند تعديل الملف: مدفوع ({paid_amount})، باقي ({remaining_amount})"
+            })
+            if paid_amount > 0:
+                db_service.create_payment({
+                    "client_id": client_id,
+                    "treatment_id": treatment_record.get("id") if treatment_record else None,
+                    "amount": paid_amount,
+                    "payment_date": date.today().isoformat(),
+                    "payment_method": "especes",
+                    "next_payment_date": None,
+                    "notes": "دفعة أولى عند تعديل الملف"
+                })
+        elif len(treatments) == 1 and len(payments) <= 1 and total_cost > 0:
+            db_service.update_treatment(treatments[0]["id"], {"total_cost": total_cost})
+            if payments:
+                if paid_amount > 0:
+                    db_service.update_payment(payments[0]["id"], {"amount": paid_amount})
+                else:
+                    db_service.delete_payment(payments[0]["id"])
+            elif paid_amount > 0:
+                db_service.create_payment({
+                    "client_id": client_id,
+                    "treatment_id": treatments[0]["id"],
+                    "amount": paid_amount,
+                    "payment_date": date.today().isoformat(),
+                    "payment_method": "especes",
+                    "next_payment_date": None,
+                    "notes": "دفعة مسجلة عند تعديل الملف"
+                })
+
         flash("تم تحديث معلومات المريض بنجاح.", "success")
         return redirect(url_for("client_view", client_id=client_id))
 
